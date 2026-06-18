@@ -157,6 +157,21 @@ cp backend/.env.example backend/.env   # edit and set GROQ_API_KEY=...
    spatial statistics, and the argument embeddings into a temperature-scaled final
    prediction with an expected-calibration-error estimate.
 
+## Training the models
+
+The app runs out of the box on ImageNet-pretrained backbones (predictions are
+not clinically meaningful until trained). To train the real Argus models —
+Agent A (EfficientNet-B4), Agent B (ViT-B/16), and the calibrated consensus MLP
+— use the **Kaggle** notebooks in [`ml_training/`](ml_training), which run on
+Kaggle's free GPU.
+
+See **[`ml_training/KAGGLE_TRAINING.md`](ml_training/KAGGLE_TRAINING.md)** for the
+full step-by-step guide (dataset to attach, GPU/Internet setup, run order, and
+how to drop the trained `*.pth` checkpoints into `backend/checkpoints/`).
+
+Dataset: [ISIC 2019 on Kaggle](https://www.kaggle.com/datasets/andrewmvd/isic-2019)
+(25,331 images, 8 classes).
+
 ## License
 
 MIT.
