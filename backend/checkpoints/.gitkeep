@@ -1,0 +1,4 @@
+# Trained model checkpoints (agent_a_best.pth, agent_b_best.pth, consensus_best.pth)
+# are written here by the notebooks in ../ml_training and are git-ignored (*.pth).
+# When they are absent, the backend falls back to ImageNet-pretrained weights so
+# the pipeline still runs end-to-end (PRETRAINED_FALLBACK=true).

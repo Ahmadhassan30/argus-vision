@@ -1,0 +1,98 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - argus-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      # Persist downloaded model weights (HuggingFace / timm / torch hub) across
+      # container restarts so the first-run download happens only once.
+      - hf-cache:/root/.cache
+    # backend/.env is OPTIONAL: it is only needed for local (non-Docker) runs or
+    # to override defaults. A missing file must not block `docker compose up`.
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      REDIS_URL: redis://redis:6379
+      # GROQ_API_KEY enables the live LLM debate text. Without it the pipeline
+      # still runs end-to-end with deterministic fallback arguments. Provide it
+      # via your shell (export GROQ_API_KEY=...) or a .env file next to this one.
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - argus-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      # Generous start period: on first run the backend downloads the pretrained
+      # EfficientNet-B4 / ViT-B16 / MiniLM weights before it serves /health.
+      start_period: 180s
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost/api
+        NEXT_PUBLIC_WS_URL: ws://localhost/ws
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost/api
+      NEXT_PUBLIC_WS_URL: ws://localhost/ws
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - argus-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      start_period: 40s
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - argus-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80"]
+      start_period: 40s
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis-data:
+  hf-cache:
+
+networks:
+  argus-network:
+    driver: bridge
