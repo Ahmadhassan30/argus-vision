@@ -35,6 +35,9 @@ const dmSerifDisplay = DM_Serif_Display({
 
 /** Page metadata for the Argus Vision application. */
 export const metadata: Metadata = {
+  // Base URL used to resolve relative Open Graph / Twitter image URLs to
+  // absolute ones. The app is served behind nginx at the site root.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost"),
   title: "Argus Vision",
   description:
     "Adversarial multi-agent visual debate for uncertainty-aware medical image classification.",

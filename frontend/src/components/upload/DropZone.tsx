@@ -11,7 +11,6 @@
 
 import { useCallback, useState } from "react";
 import { useDropzone, type FileRejection } from "react-dropzone";
-import { motion } from "framer-motion";
 import clsx from "clsx";
 
 /** The maximum accepted image size in bytes (10 MB). */
@@ -130,18 +129,22 @@ export default function DropZone({
 
   return (
     <div className="flex w-full flex-col gap-3">
-      <motion.div
+      {/*
+        react-dropzone's getRootProps() returns DOM-typed handlers
+        (onAnimationStart, onDrag*) that conflict with framer-motion's redefined
+        props, so the root must be a plain <div>. The drag-active pulse uses the
+        Tailwind `pulse-border` keyframe and a CSS scale instead of motion.
+      */}
+      <div
         {...getRootProps()}
         className={clsx(
           "flex cursor-pointer flex-col items-center justify-center gap-2",
           "rounded-xl border-2 border-dashed bg-argus-surface px-6 py-12 text-center",
-          "transition-colors",
+          "transition duration-200 will-change-transform",
           isDragActive
-            ? "animate-pulse-border"
+            ? "scale-[1.01] animate-pulse-border"
             : "border-argus-border hover:border-argus-agent-a"
         )}
-        animate={isDragActive ? { scale: 1.01 } : { scale: 1 }}
-        transition={{ type: "spring", stiffness: 300, damping: 24 }}
       >
         <input {...getInputProps()} />
         <p className="font-display text-sm text-white">
@@ -152,7 +155,7 @@ export default function DropZone({
         <p className="font-mono text-xs text-argus-muted">
           JPG or PNG · up to 10 MB · click to browse
         </p>
-      </motion.div>
+      </div>
 
       {error && (
         <p className="font-mono text-xs text-argus-danger" role="alert">
