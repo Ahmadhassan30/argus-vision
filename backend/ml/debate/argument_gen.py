@@ -30,57 +30,23 @@ CLASS_NAMES: list[str] = ["MEL", "NV", "BCC", "AK", "BKL", "DF", "VASC", "SCC"]
 # Two-sentence clinical descriptions for each ISIC-8 class, written around the
 # dermoscopic criteria a dermatologist would cite when defending a diagnosis.
 ISIC_CLASS_DESCRIPTIONS: dict[str, str] = {
-    "MEL": (
-        "Melanoma typically shows an atypical, broadened pigment network with "
-        "irregular streaks, asymmetry of structure and colour, and frequent "
-        "regression areas. A blue-white veil, irregularly distributed dots and "
-        "globules, and chaotic vessel patterns strongly support malignancy."
-    ),
-    "NV": (
-        "A melanocytic nevus is characterised by a symmetric, regularly spaced "
-        "reticular or globular pattern with uniform colouration and a smooth "
-        "transition to surrounding skin. Structures are evenly distributed about "
-        "the lesion centre, lacking the chaos and abrupt cut-offs seen in "
-        "melanoma."
-    ),
-    "BCC": (
-        "Basal cell carcinoma is defined dermoscopically by arborising "
-        "(tree-like branching) vessels and blue-grey ovoid nests, usually on a "
-        "pigment-network-free background. Leaf-like areas, spoke-wheel "
-        "structures, and shiny white-red structureless zones reinforce the "
-        "diagnosis."
-    ),
-    "AK": (
-        "Actinic keratosis on facial skin shows a 'strawberry' pattern: a red "
-        "pseudo-network of dilated vessels surrounding keratin-plugged "
-        "follicular openings. White rosettes seen under polarised light and a "
-        "scaly, erythematous background are characteristic."
-    ),
-    "BKL": (
-        "Benign keratosis (seborrhoeic keratosis / lichenoid keratosis) displays "
-        "a cerebriform 'brain-like' surface with milia-like cysts and comedo-like "
-        "openings. Sharply demarcated borders, a stuck-on appearance, and "
-        "fingerprint-like or fat-fingers structures distinguish it from "
-        "melanocytic lesions."
-    ),
-    "DF": (
-        "Dermatofibroma classically presents with a central white scar-like patch "
-        "surrounded by a delicate peripheral pigment network. The lesion is firm, "
-        "shows a homogeneous tan-brown ring, and dimples centrally on lateral "
-        "compression."
-    ),
-    "VASC": (
-        "Vascular lesions (haemangiomas, angiokeratomas) are recognised by "
-        "sharply demarcated red, purple, or maroon lacunae separated by pale "
-        "septa. The absence of any melanocytic pigment network together with the "
-        "saturated red-blue colour confirms a vascular origin."
-    ),
-    "SCC": (
-        "Squamous cell carcinoma shows central keratin masses, white circles "
-        "around follicular openings, and surface scale or ulceration. Looped "
-        "(hairpin) and glomerular/coiled vessels arranged at the periphery, often "
-        "with a bleeding or crusted centre, support invasion."
-    ),
+    "MEL": "Melanoma typically shows an atypical, broadened pigment network with irregular streaks, "
+           "asymmetry of structure and colour, and frequent regression areas. A blue-white veil and "
+           "chaotic vessels support malignancy.",
+    "NV": "A melanocytic nevus is characterised by a symmetric, regularly spaced reticular or globular "
+          "pattern with uniform colouration and a smooth transition to surrounding skin.",
+    "BCC": "Basal cell carcinoma is defined by arborising (tree-like) vessels and blue-grey ovoid nests "
+           "on a pigment-network-free background, with leaf-like areas and spoke-wheel structures.",
+    "AK": "Actinic keratosis shows a 'strawberry' pattern: a red pseudo-network of dilated vessels around "
+          "keratin-plugged follicular openings on a scaly, erythematous background.",
+    "BKL": "Benign keratosis displays a cerebriform 'brain-like' surface with milia-like cysts and "
+           "comedo-like openings, sharply demarcated borders and a stuck-on appearance.",
+    "DF": "Dermatofibroma presents with a central white scar-like patch surrounded by a delicate peripheral "
+          "pigment network and a homogeneous tan-brown ring.",
+    "VASC": "Vascular lesions are recognised by sharply demarcated red, purple, or maroon lacunae separated "
+            "by pale septa, with no melanocytic pigment network.",
+    "SCC": "Squamous cell carcinoma shows central keratin masses, white circles around follicular openings, "
+           "surface scale/ulceration, and looped or glomerular vessels at the periphery.",
 }
 
 # Full human-readable names used to make prompts read naturally.
@@ -196,23 +162,11 @@ def _format_bbox(bbox: Any) -> str:
     )
 
 
-def _region_summary(region_stats: dict[str, Any], bbox: Any) -> str:
-    """Build a one-line summary of the contested attention region.
-
-    Args:
-        region_stats: Attention statistics for this agent's heatmap inside the
-            contested region.
-        bbox: The contested-region bounding box.
-
-    Returns:
-        A human-readable sentence describing the attention concentration and
-        the region location.
-    """
+def _region_summary(region_stats: dict[str, Any], bbox: Any = None) -> str:
+    """Build a one-line summary of the contested attention region."""
     return (
-        f"In the contested region ({_format_bbox(bbox)}) your attention map has "
-        f"mean activation {_stat(region_stats, 'mean'):.3f}, "
-        f"standard deviation {_stat(region_stats, 'std'):.3f}, and peak "
-        f"{_stat(region_stats, 'max'):.3f}."
+        f"In the contested region your attention map has mean {region_stats.get('mean', 0.0):.3f}, "
+        f"std {region_stats.get('std', 0.0):.3f}, peak {region_stats.get('max', 0.0):.3f}."
     )
 
 
@@ -330,36 +284,21 @@ def _fallback_argument(
     pred_class: str,
     confidence: float,
     region_stats: Optional[dict[str, Any]],
-    bbox: Any,
+    bbox: Any = None,
     opponent_pred: Optional[str] = None,
 ) -> str:
-    """Build a deterministic argument when the LLM is unavailable.
-
-    Args:
-        pred_class: The ISIC class code being defended.
-        confidence: This agent's confidence in ``pred_class`` (0-1).
-        region_stats: Attention statistics for the contested region (may be
-            ``None``).
-        bbox: The contested-region bounding box (may be ``None``).
-        opponent_pred: Optional opposing class code to contrast against.
-
-    Returns:
-        A clinically grounded, single-paragraph fallback argument string.
-    """
+    """Build a deterministic argument when the LLM is unavailable."""
     stats = region_stats or {}
     contrast = ""
     if opponent_pred and opponent_pred != pred_class:
         contrast = (
-            f" These features are inconsistent with {_full_name(opponent_pred)} "
-            f"({opponent_pred}), which would present a different dermoscopic "
-            f"signature."
+            f"These features are inconsistent with {_full_name(opponent_pred)} "
+            f"({opponent_pred})."
         )
     return (
-        f"Based on the dermoscopic evidence, this lesion is most consistent with "
-        f"{_full_name(pred_class)} ({pred_class}) at {confidence * 100:.1f}% "
-        f"confidence. {_describe_class(pred_class)} "
-        f"{_region_summary(stats, bbox)} The concentration of attention over "
-        f"these structures supports the {pred_class} diagnosis.{contrast}"
+        f"This lesion is most consistent with {_full_name(pred_class)} ({pred_class}) at "
+        f"{confidence * 100:.1f}% confidence. {_describe_class(pred_class)} "
+        f"{_region_summary(stats)} {contrast}"
     )
 
 
@@ -450,32 +389,17 @@ def generate_counter_argument(
     region_stats: Optional[dict[str, Any]] = None,
     bbox: Any = None,
 ) -> tuple[str, float]:
-    """Generate a round-2 rebuttal and a bounded confidence delta.
+    """Generate a round-2 rebuttal and a bounded confidence delta."""
+    if groq_client is None:
+        fb = _fallback_argument(
+            pred_class=pred_class,
+            confidence=confidence,
+            region_stats=region_stats,
+            bbox=bbox,
+            opponent_pred=opponent_pred,
+        )
+        return fb, 0.0
 
-    Builds a counter prompt, queries Groq synchronously, then strips and parses
-    the trailing ``CONFIDENCE_DELTA:`` line. The delta is clamped to
-    ``[-0.3, 0.3]`` and defaults to ``0.0`` when absent or unparseable. On any
-    failure the function returns a deterministic fallback rebuttal with a
-    neutral delta so the pipeline always completes.
-
-    Args:
-        original_arg: This agent's round-1 argument text.
-        opponent_arg: The opponent's round-1 argument text.
-        pred_class: The ISIC class code this agent is defending.
-        groq_client: An initialised Groq SDK client, or ``None`` for fallback.
-        model: The Groq model identifier to query.
-        agent_id: This agent's identifier (``"A"`` or ``"B"``).
-        confidence: This agent's current confidence (0-1).
-        opponent_pred: The opponent's predicted ISIC class code.
-        opponent_conf: The opponent's confidence (0-1).
-        region_stats: Optional attention statistics for the contested region.
-        bbox: Optional contested-region bounding box.
-
-    Returns:
-        A ``(revised_argument, delta)`` tuple, where ``revised_argument`` is the
-        rebuttal with the ``CONFIDENCE_DELTA`` line removed and ``delta`` is the
-        clamped confidence adjustment.
-    """
     messages = build_counter_prompt(
         agent_id=agent_id,
         pred_class=pred_class,
