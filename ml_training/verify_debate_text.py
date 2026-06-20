@@ -187,7 +187,13 @@ def main():
                     errors.append(f"{name}: _fallback_argument({pred}, {conf}, ...) output is:\n  '{val_fallback}'\nExpected:\n  '{ref_fallback}'")
             except Exception as exc:
                 errors.append(f"{name}: _fallback_argument({pred}, {conf}, ...) failed with {exc}")
-                
+    # Verify that self.backbone is not used in the consensus MLP classes (they must use self.mlp to match checkpoints)
+    for nb_name, nb_path in [("NB04", "ml_training/04_train_consensus.ipynb"), ("NB05", "ml_training/05_evaluation.ipynb")]:
+        with open(nb_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        if "self.backbone" in content and ("ConsensusClassifier" in content or "ConsensusMLP" in content):
+            errors.append(f"{nb_name} uses 'self.backbone' for the Consensus MLP instead of 'self.mlp', which will break state_dict loading.")
+
     if errors:
         print("\n!!! ALIGNMENT VERIFICATION FAILED !!!")
         for err in errors:
