@@ -1,33 +1,15 @@
-"""Canonical 23-dimensional consensus feature extractor for Argus Vision.
+"""Canonical 23-dimensional consensus feature extractor (serving path).
 
-This module was previously the shared *debate-text* utility (class descriptions
-and deterministic fallback-argument templates used by the Groq LLM debate). The
-LLM debate + 788-dim sentence-embedding pipeline has been removed; this file is
-repurposed to hold the **single source of truth** for the 23-dimensional pure
-numerical consensus feature vector.
+This replaces the removed Groq LLM debate-text + 788-dim sentence-embedding
+pipeline. The consensus head now consumes a 23-dim pure numerical vector built
+from the two agents' softmax distributions, their disagreement statistics, and
+their spatial-attention agreement.
 
-The exact same ``extract_consensus_features`` implementation is duplicated
-verbatim inside the Kaggle notebooks (04_train_consensus.ipynb,
-05_evaluation.ipynb) because Kaggle notebooks must be self-contained, and inside
-``backend/ml/debate/features.py`` for the serving path. **If you change the
-feature contract here you MUST change it in all three places and retrain the
-consensus MLP**, otherwise training/eval/serving features silently disagree (the
-class of bug that previously collapsed balanced accuracy to 18%).
-
-Feature layout (length 23):
-
-    [0:8]   prob_a          Agent A softmax probabilities (ISIC-8 order)
-    [8:16]  prob_b          Agent B softmax probabilities (ISIC-8 order)
-    [16]    js_div          Jensen-Shannon divergence between prob_a and prob_b
-    [17]    entropy_a       Shannon entropy of prob_a (bits)
-    [18]    entropy_b       Shannon entropy of prob_b (bits)
-    [19]    max_prob_delta  max |prob_a - prob_b| over the 8 classes
-    [20]    attn_iou        IoU of the two attention maps thresholded at 0.5
-    [21]    attn_entropy_a  Shannon entropy of Agent A's normalized attention map
-    [22]    attn_entropy_b  Shannon entropy of Agent B's normalized attention map
-
-The three attention features are 0.0 when attention maps are unavailable (the
-non-debate fast path), which is a legitimate value, not a missing one.
+The implementation here is duplicated **verbatim** from
+``ml_training/debate_text_utils.py`` and from the Kaggle notebooks
+(04_train_consensus.ipynb / 05_evaluation.ipynb). All three must stay byte-for-byte
+identical or training/eval/serving features silently disagree. See that module's
+docstring for the full feature layout.
 """
 
 from __future__ import annotations
@@ -43,7 +25,7 @@ CLASS_NAMES = ["MEL", "NV", "BCC", "AK", "BKL", "DF", "VASC", "SCC"]
 # the consensus MLP and re-fitting the StandardScaler.
 FEATURE_DIM = 23
 
-# Human-readable names of the 23 features, in order (for diagnostics).
+# Human-readable names of the 23 features, in order (for diagnostics/logging).
 FEATURE_NAMES = (
     [f"pA_{c}" for c in CLASS_NAMES]
     + [f"pB_{c}" for c in CLASS_NAMES]
@@ -68,18 +50,17 @@ def extract_consensus_features(
 
     Returns:
         A ``float32`` ``np.ndarray`` of shape ``(23,)``. The three attention
-        features are ``0.0`` when either attention map is ``None``.
+        features are ``0.0`` when either attention map is ``None`` (the
+        non-debate fast path), which is a legitimate value, not a missing one.
     """
     prob_a = np.asarray(prob_a, dtype=np.float64).flatten()
     prob_b = np.asarray(prob_b, dtype=np.float64).flatten()
 
-    # Clip to avoid log(0); renormalize so each sums to 1.
     prob_a = np.clip(prob_a, 1e-9, 1.0)
     prob_a /= prob_a.sum()
     prob_b = np.clip(prob_b, 1e-9, 1.0)
     prob_b /= prob_b.sum()
 
-    # squared JS distance == JS divergence (scipy returns the distance).
     js_div = float(jensenshannon(prob_a, prob_b) ** 2)
     entropy_a = float(scipy_entropy(prob_a, base=2))
     entropy_b = float(scipy_entropy(prob_b, base=2))

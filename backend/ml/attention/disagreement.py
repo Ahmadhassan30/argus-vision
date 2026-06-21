@@ -3,8 +3,11 @@
 Given two 224x224 saliency maps (Agent A's Grad-CAM++ and Agent B's attention
 rollout), this module quantifies *where* the agents look differently and
 extracts a bounding box around the most contested region. The resulting map and
-region statistics feed both the WebSocket ``attention_computed`` event and the
-788-dim consensus feature vector's spatial statistics.
+region statistics feed the WebSocket ``attention_computed`` event (the UI
+overlays). The 23-dim consensus feature vector derives its three attention
+features directly from the two raw saliency maps via
+``ml.debate.features.extract_consensus_features`` rather than from these region
+statistics.
 """
 
 from __future__ import annotations

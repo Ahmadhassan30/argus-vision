@@ -26,9 +26,6 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # --- External services --------------------------------------------------
-    GROQ_API_KEY: str = ""
-    """API key used to authenticate with the Groq LLM inference service."""
-
     REDIS_URL: str = "redis://redis:6379"
     """Connection URL for the Redis instance backing jobs and pub/sub."""
 
@@ -45,6 +42,12 @@ class Settings(BaseSettings):
     CONSENSUS_CHECKPOINT: str = "consensus_best.pth"
     """Filename of the consensus MLP checkpoint."""
 
+    CONSENSUS_SCALER: str = "consensus_scaler.pkl"
+    """Filename of the StandardScaler fitted on the consensus training split.
+
+    A ``consensus_scaler.json`` ``{"mean", "scale"}`` sidecar next to it is used
+    as a numpy-only fallback when scikit-learn/joblib is unavailable."""
+
     PRETRAINED_FALLBACK: bool = True
     """If true, fall back to ImageNet-pretrained weights when a checkpoint
     is missing instead of raising an error."""
@@ -54,11 +57,7 @@ class Settings(BaseSettings):
     """Jensen-Shannon divergence above which a debate is triggered."""
 
     DEBATE_ENTROPY_THRESHOLD: float = 0.8
-    """Prediction entropy above which a debate is triggered."""
-
-    # --- LLM configuration --------------------------------------------------
-    GROQ_MODEL: str = "llama-3.3-70b-versatile"
-    """Identifier of the Groq-hosted model used to generate arguments."""
+    """Prediction entropy above which spatial attention + consensus run."""
 
     # --- Upload / request limits -------------------------------------------
     MAX_IMAGE_SIZE_MB: int = 10
