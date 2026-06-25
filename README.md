@@ -23,13 +23,13 @@ Medical vision classifiers are often overconfident or poorly calibrated near dec
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-* 🤖 **Dual-Agent Core Classifier** — Parallel evaluation using a CNN backbone (**EfficientNet-B4**) and a Vision Transformer backbone (**ViT-B/16**) trained on the ISIC 2019 dataset.
-* ⚡ **Intelligent Debate Trigger** — Monitors Jensen-Shannon divergence ($D_{JS}$) and predictive entropy ($H$) in real time. If they cross user-defined thresholds ($\tau_{JS} = 0.25$, $\tau_{H} = 0.8$ bits), the system triggers a deep attention visual debate; otherwise, it takes the fast-path.
-* 🔍 **Interactive Saliency & Attention Mapping** — When the trigger fires, the pipeline computes Grad-CAM++ (Agent A) and Attention Rollout (Agent B) maps to localize a **contested bounding box** enclosing the highest spatial disagreement.
-* 🎯 **Calibrated LightGBM Consensus Head** — Replaces unstable MLPs with a 23-dimensional numerical fusion head trained using 5-Fold Stratified Cross-Validation and Isotonic calibration, achieving low Expected Calibration Error (ECE) and high precision (especially on rare SCC and MEL classes).
-* 🐳 **Full-Stack Docker Orchestration** — Seamless containerization of Next.js frontend, FastAPI backend, Redis job queue, and Nginx reverse proxy.
+* **Dual-Agent Core Classifier** — Parallel evaluation using a CNN backbone (**EfficientNet-B4**) and a Vision Transformer backbone (**ViT-B/16**) trained on the ISIC 2019 dataset.
+* **Intelligent Debate Trigger** — Monitors Jensen-Shannon divergence ($D_{JS}$) and predictive entropy ($H$) in real time. If they cross user-defined thresholds ($\tau_{JS} = 0.25$, $\tau_{H} = 0.8$ bits), the system triggers a deep attention visual debate; otherwise, it takes the fast-path.
+* **Interactive Saliency & Attention Mapping** — When the trigger fires, the pipeline computes Grad-CAM++ (Agent A) and Attention Rollout (Agent B) maps to localize a **contested bounding box** enclosing the highest spatial disagreement.
+* **Calibrated LightGBM Consensus Head** — Replaces unstable MLPs with a 23-dimensional numerical fusion head trained using 5-Fold Stratified Cross-Validation and Isotonic calibration, achieving low Expected Calibration Error (ECE) and high precision (especially on rare SCC and MEL classes).
+* **Full-Stack Docker Orchestration** — Seamless containerization of Next.js frontend, FastAPI backend, Redis job queue, and Nginx reverse proxy.
 
 ---
 
