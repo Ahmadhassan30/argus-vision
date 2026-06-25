@@ -5,11 +5,12 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1
 
-# System libraries required by OpenCV (cv2) at runtime.
+# System libraries required by OpenCV (cv2) and LightGBM at runtime.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         libgl1 \
         libglib2.0-0 \
+        libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

@@ -13,6 +13,7 @@ dist/
 
 # ML
 checkpoints/*.pth
+backend/checkpoints/
 data/raw/
 *.onnx
 wandb/

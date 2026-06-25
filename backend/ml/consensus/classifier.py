@@ -68,7 +68,7 @@ class ConsensusClassifier(nn.Module):
         scaler_path: str | None = None,
         device: str | None = None,
     ) -> None:
-        """Build the consensus MLP, load weights, and load the feature scaler.
+        """Build the consensus head, load weights/model, and load the feature scaler.
 
         Args:
             checkpoint_path: Path to a trained ``.pth`` state dict (or an
@@ -84,6 +84,42 @@ class ConsensusClassifier(nn.Module):
 
         self.device: str = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.calibration_ece: float = 0.0
+
+        self.use_lgbm: bool = False
+        self.lgbm_model = None
+        self.lgbm_meta: dict = {}
+
+        # Look for LightGBM model next to checkpoint or scaler
+        lgbm_candidate = None
+        if checkpoint_path:
+            ckpt_dir = os.path.dirname(checkpoint_path)
+            lgbm_candidate = os.path.join(ckpt_dir, "consensus_lgbm.pkl")
+
+        # Try to load LightGBM if libraries are available and model exists
+        try:
+            import lightgbm as lgbm
+            import joblib
+            HAS_LGBM_LIBS = True
+        except ImportError:
+            HAS_LGBM_LIBS = False
+
+        if HAS_LGBM_LIBS and lgbm_candidate and os.path.exists(lgbm_candidate):
+            try:
+                self.lgbm_model = joblib.load(lgbm_candidate)
+                meta_path = os.path.splitext(lgbm_candidate)[0] + ".json"
+                if os.path.exists(meta_path):
+                    with open(meta_path, "r", encoding="utf-8") as fh:
+                        self.lgbm_meta = json.load(fh)
+                self.use_lgbm = True
+                self.calibration_ece = float(self.lgbm_meta.get("val_ece_raw", 0.0))
+                logger.info("ConsensusClassifier: loaded LightGBM consensus head from '%s'.", lgbm_candidate)
+            except Exception as exc:
+                logger.warning(
+                    "ConsensusClassifier: failed to load LightGBM model from '%s' (%s). "
+                    "Falling back to PyTorch MLP.",
+                    lgbm_candidate,
+                    exc,
+                )
 
         # 23 -> 128 -> 64 -> 8, matching the training notebook's ConsensusClassifier.
         self.mlp: nn.Sequential = nn.Sequential(
@@ -113,6 +149,9 @@ class ConsensusClassifier(nn.Module):
     # ------------------------------------------------------------------ loading
     def _load_checkpoint(self, checkpoint_path: str | None) -> None:
         """Load the MLP/temperature weights, tolerating the envelope format."""
+        if self.use_lgbm:
+            # Skip MLP loading if we are using LightGBM
+            return
         if checkpoint_path is not None and os.path.exists(checkpoint_path):
             logger.info(
                 "ConsensusClassifier: loading checkpoint '%s' onto '%s'.",
@@ -244,13 +283,13 @@ class ConsensusClassifier(nn.Module):
         """Produce a calibrated consensus prediction from the agent signals.
 
         Builds the 23-d feature vector with the canonical extractor, standardizes
-        it with the saved scaler, and runs the calibrated MLP.
+        it with the saved scaler, and runs the calibrated MLP or LightGBM model.
 
         Args:
             prob_a: Agent A's 8-class probability distribution (canonical order).
             prob_b: Agent B's 8-class probability distribution (canonical order).
             attn_map_a: Agent A's 2D attention map, or ``None`` on the fast path.
-            attn_map_b: Agent B's 2D attention map, or ``None`` on the fast path.
+            attn_map_b: Agent B's 2D attention map, or ``None``` on the fast path.
 
         Returns:
             A :class:`core.models.ConsensusResult` with the predicted class, its
@@ -263,6 +302,24 @@ class ConsensusClassifier(nn.Module):
                         dtype=np.float64).ravel()
 
         feature = extract_consensus_features(pa, pb, attn_map_a, attn_map_b)
+
+        if self.use_lgbm:
+            # Scale using standardization statistics
+            scaled = (feature.astype(np.float64) - self._scaler_mean) / self._scaler_scale
+            prob_row = self.lgbm_model.predict_proba(scaled.reshape(1, -1))[0]
+            top_index = int(np.argmax(prob_row))
+            probability_map: dict[str, float] = {
+                class_name: float(prob_row[idx])
+                for idx, class_name in enumerate(CLASS_NAMES)
+            }
+            return ConsensusResult(
+                pred_class=CLASS_NAMES[top_index],
+                confidence=float(prob_row[top_index]),
+                probabilities=probability_map,
+                temperature=1.0,
+                ece=float(self.calibration_ece),
+            )
+
         feature_tensor = self._standardize(feature)
 
         with torch.no_grad():
