@@ -117,7 +117,7 @@ export async function nextTurn(s: EngineState, dyn: Dynamics): Promise<StepResul
     nextSelf = self;
   } else if (closing) {
     move = "agree";
-    nextSelf = blendToward(self, dyn.consensus ?? opp, 0.75);
+    nextSelf = dyn.consensus ?? blendToward(self, opp, 0.75);
   } else {
     const r = revise({
       self,
