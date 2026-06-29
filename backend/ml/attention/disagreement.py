@@ -15,6 +15,7 @@ from __future__ import annotations
 from typing import Dict, Tuple
 
 import numpy as np
+from scipy import ndimage
 
 from core.models import BoundingBox
 
@@ -59,6 +60,55 @@ def _region_stats(normalized_map: np.ndarray, mask: np.ndarray) -> Dict[str, flo
         "std": float(selected.std()),
         "max": float(selected.max()),
     }
+
+
+def _central_window_mask(rows: int, cols: int, border_fraction: float = 0.08) -> np.ndarray:
+    """Build a mask that excludes a thin border where vignette artifacts live."""
+    margin_y = max(1, int(round(rows * border_fraction)))
+    margin_x = max(1, int(round(cols * border_fraction)))
+    mask = np.zeros((rows, cols), dtype=bool)
+    y1 = min(margin_y, rows)
+    y2 = max(rows - margin_y, y1)
+    x1 = min(margin_x, cols)
+    x2 = max(cols - margin_x, x1)
+    mask[y1:y2, x1:x2] = True
+    return mask
+
+
+def _largest_component(mask: np.ndarray, score_map: np.ndarray) -> np.ndarray:
+    """Keep the highest-scoring connected component from a boolean mask."""
+    labels, count = ndimage.label(mask)
+    if count <= 0:
+        return mask
+
+    rows, cols = score_map.shape
+    component_scores: list[tuple[float, int, bool]] = []
+    for label_idx in range(1, count + 1):
+        component = labels == label_idx
+        if not bool(component.any()):
+            continue
+        component_values = score_map[component]
+        area = float(component_values.size)
+        mean_score = float(component_values.mean())
+        row_idx, col_idx = np.nonzero(component)
+        center_row = float(row_idx.mean())
+        center_col = float(col_idx.mean())
+        distance = np.hypot(center_row - (rows - 1) / 2.0, center_col - (cols - 1) / 2.0)
+        center_bonus = 1.0 - min(1.0, distance / (0.5 * np.hypot(rows - 1, cols - 1)))
+        score = mean_score * area * (0.5 + 0.5 * center_bonus)
+        touches_border = (
+            int(row_idx.min()) == 0
+            or int(row_idx.max()) == rows - 1
+            or int(col_idx.min()) == 0
+            or int(col_idx.max()) == cols - 1
+        )
+        component_scores.append((score, label_idx, touches_border))
+
+    interior_scores = [(score, label_idx) for score, label_idx, touches_border in component_scores if not touches_border]
+    if not interior_scores:
+        return np.zeros_like(mask, dtype=bool)
+    best_label = max(interior_scores, key=lambda item: item[0])[1]
+    return labels == best_label
 
 
 def compute_disagreement(
@@ -132,9 +182,23 @@ def extract_bbox(
     arr = np.asarray(disagreement_map, dtype=np.float32)
     rows, cols = arr.shape
 
+    if rows == 0 or cols == 0:
+        return BoundingBox(x1=0, y1=0, x2=0, y2=0)
+
     quantile = float(np.clip(1.0 - top_k_percent, 0.0, 1.0))
     threshold = float(np.quantile(arr, quantile))
-    mask = arr > threshold
+    mask = arr >= threshold
+
+    interior_mask = _central_window_mask(rows, cols)
+    focused_mask = mask & interior_mask
+    if bool(focused_mask.any()):
+        mask = focused_mask
+
+    if not bool(mask.any()):
+        # No salient pixels survived the thresholding; fall back to the frame.
+        return BoundingBox(x1=0, y1=0, x2=int(cols - 1), y2=int(rows - 1))
+
+    mask = _largest_component(mask, arr)
 
     if not bool(mask.any()):
         # No pixel strictly exceeds the quantile: return a full-frame box.

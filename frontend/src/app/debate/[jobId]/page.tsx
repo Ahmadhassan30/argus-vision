@@ -126,7 +126,7 @@ export default function DebatePage({ params }: DebatePageProps): React.JSX.Eleme
     return "thinking";
   };
 
-  const convergedClass = debate.finished && debate.converged ? leadClass(debate.beliefA) : null;
+  const convergedClass = showConsensus ? ws.consensus?.pred_class ?? null : null;
   const recap = ws.consensus
     ? `After ${debate.round} rounds, the agents reconciled their reading to ${getClassName(ws.consensus.pred_class)}; the calibrated head finalizes it at ${(ws.consensus.confidence * 100).toFixed(0)}% confidence.`
     : "";
