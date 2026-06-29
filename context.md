@@ -255,20 +255,22 @@ argus-vision/
 │   ├── checkpoints/          # Model weights directory
 │   │   ├── agent_a_best.pth  # EfficientNet-B4 weights
 │   │   ├── agent_b_best.pth  # ViT-B/16 weights
-│   │   ├── consensus_lgbm.pkl# Primary LightGBM consensus head
-│   │   └── consensus_scaler.json # StandardScaler parameters
+│   │   ├── consensus_lgbm.pkl# Primary LightGBM consensus head (scikit-learn 1.6.1)
+│   │   ├── consensus_lgbm.json# Hyperparameter metadata & metrics
+│   │   ├── consensus_scaler.pkl # StandardScaler parameters (scikit-learn 1.6.1)
+│   │   └── consensus_scaler.json # StandardScaler fallback config
 │   ├── core/
 │   │   ├── config.py         # pydantic-settings config mapper
 │   │   ├── exceptions.py     # Custom error hierarchy
 │   │   └── models.py         # Pydantic schemas (JobResult, DebateEvent, etc.)
 │   ├── ml/
 │   │   ├── agents/
-│   │   │   ├── agent_a.py    # CNN wrapper
-│   │   │   └── agent_b.py    # ViT wrapper
+│   │   │   ├── agent_a.py    # CNN wrapper (EfficientNet-B4)
+│   │   │   └── agent_b.py    # ViT wrapper (ViT-B/16)
 │   │   ├── attention/
 │   │   │   ├── disagreement.py# Disagreement map & bbox mask extraction
-│   │   │   ├── gradcam.py    # Grad-CAM++ logic
-│   │   │   └── rollout.py    # Transformer Attention Rollout logic
+│   │   │   ├── gradcam.py    # Grad-CAM++ logic (Agent A)
+│   │   │   └── rollout.py    # Transformer Attention Rollout logic (Agent B)
 │   │   ├── consensus/
 │   │   │   └── classifier.py # Calibrated Fusion logic (StandardScaler -> LGBM/MLP)
 │   │   ├── debate/
@@ -293,15 +295,33 @@ argus-vision/
 │   │   │   └── page.tsx      # Landing page with DropZone file uploader
 │   │   ├── components/
 │   │   │   ├── debate/
-│   │   │   │   ├── AgentCard.tsx       # UI for agent predictions
-│   │   │   │   ├── ConsensusVerdict.tsx# Displays final consensus output
-│   │   │   │   ├── DisagreementMap.tsx # Visual disagreement map overlay
-│   │   │   │   ├── HeatmapCanvas.tsx   # Canvas overlays for base64 images & bbox
-│   │   │   │   └── TriggerIndicator.tsx# UI gauges for divergence & entropy
-│   │   │   ├── ui/
-│   │   │   │   └── ClassBadge.tsx      # Color-coded ISIC categories
+│   │   │   │   ├── AgentScoreboard.tsx  # Dynamic side-by-side agent beliefs
+│   │   │   │   ├── ConsensusVerdict.tsx # Displays final consensus output
+│   │   │   │   ├── DebateTranscript.tsx # Renders structured interactive debate turns
+│   │   │   │   ├── DisagreementMap.tsx  # Visual disagreement map overlay
+│   │   │   │   ├── HeatmapCanvas.tsx    # Canvas overlays for base64 images & bbox
+│   │   │   │   ├── ProbabilityBars.tsx  # Renders live-updating belief bars
+│   │   │   │   ├── TimelineRail.tsx     # Visual progress track of debate rounds
+│   │   │   │   ├── TriggerPanel.tsx     # Displays trigger metrics (D_JS, Entropy)
+│   │   │   │   ├── VSDivider.tsx        # Styled central VS badge
+│   │   │   │   └── WebGLBackground.tsx  # Visual particle backdrop
 │   │   │   └── upload/
-│   │   │       └── DropZone.tsx        # File drag-and-drop
+│   │   │       └── DropZone.tsx         # File drag-and-drop
+│   │   ├── hooks/
+│   │   │   ├── useCountup.ts            # Animation hook for percentages
+│   │   │   ├── useDebateEngine.ts       # React wrapper around client-side debate
+│   │   │   └── useDebateStream.ts       # WebSocket/stream connector
+│   │   ├── lib/
+│   │   │   ├── debate/                  # Client-Side Debate Engine
+│   │   │   │   ├── argumentBank.ts      # Clinical statements categorized by move
+│   │   │   │   ├── beliefs.ts           # Log opinion pool belief updater
+│   │   │   │   ├── embedder.ts          # CDN-based MiniLM embedding extractor
+│   │   │   │   ├── engine.ts            # Client-side turn-taking state machine
+│   │   │   │   └── retrieval.ts         # Vector semantic retrieval engine
+│   │   │   ├── constants.ts
+│   │   │   ├── debateReducer.ts
+│   │   │   ├── sessionImage.ts
+│   │   │   └── webgl-particles.ts
 │   │   ├── types/            # TypeScript interfaces mirroring core/models.py
 │   ├── Dockerfile
 │   ├── tailwind.config.ts
@@ -346,16 +366,56 @@ All primary configuration is injected via `.env` files or `docker-compose` envir
 
 ### Frontend Settings
 
-| Variable | Description |
-| :--- | :--- |
-| `NEXT_PUBLIC_API_URL` | Base URL for REST endpoints. Inside Docker, this points to `http://localhost/api` (via Nginx proxy). |
-| `NEXT_PUBLIC_WS_URL` | Base URL for WebSocket endpoints. Inside Docker, this points to `ws://localhost/ws`. |
+| Variable | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `NEXT_PUBLIC_API_URL` | string | `http://localhost/api` | Base URL for REST endpoints. Inside Docker, this points to Nginx. |
+| `NEXT_PUBLIC_WS_URL` | string | `ws://localhost/ws` | Base URL for WebSocket endpoints. Inside Docker, this points to Nginx. |
+| `NEXT_PUBLIC_DEBATE_EMBEDDER` | string | `transformers` | Embedder type. Set to `transformers` for MiniLM (384-d) via CDN, or fallback to lexical retrieval. |
 
 ---
 
-## 7. Running & Deployment
+## 7. Client-Side Mock Debate Engine
 
-### 7.1. Docker Compose (Full Stack)
+Since the removal of Groq LLM logic from the backend, the visual turn-by-turn debate transcript is generated dynamically and client-side inside the frontend React application (`frontend/src/lib/debate/`).
+
+### 7.1. Belief Revision (Reasoning)
+In each round, the speaking agent updates its probability distribution using a **confidence-weighted logarithmic opinion pool** targeting a shared agreement distribution:
+*   The less confident agent yields more (natural concession).
+*   The target distribution absorbs spatial evidence (IoU, region statistics) and converges toward the final calibrated consensus result returned by the backend.
+*   This process provably contracts the Jensen-Shannon divergence between the agents until it falls below the convergence threshold, triggering a closing handshake.
+
+### 7.2. Turn-Taking State Machine
+Managed by `engine.ts`, the debate loop steps through a sequence:
+1.  **Openers (R1):** Agent A presents its primary class. Agent B responds with its leading class.
+2.  **Rebuttals (R2-R5):** Speaking agent rebuts by highlighting features of its preferred class or questioning the opponent's read.
+3.  **Softening/Conceding:** If an agent's confidence drops significantly below the opponent's, it changes its move to `softens` or `concedes`.
+4.  **Agreement/Handshake (R6/Convergence):** Once divergence drops below the threshold, both agents align on the `agrees` move.
+5.  **Safety Cap:** Loop terminates after a maximum of 18 rounds to prevent infinite loops. Paced at 4–11s per turn for user readability.
+
+### 7.3. Offline Embedding Retrieval
+Clinical arguments are retrieved from a predefined statement bank (`argumentBank.ts`) by semantic similarity to the active debate context:
+*   By default, it uses lexical search.
+*   If `NEXT_PUBLIC_DEBATE_EMBEDDER=transformers` is set, it downloads a lightweight `all-MiniLM-L6-v2` (384-dim) model from a CDN at runtime, executing vector semantic retrieval directly in the browser's worker threads.
+
+---
+
+## 8. Known Issues & Limitations
+
+### 8.1. Minority Class Misclassification (VASC, SCC, AK)
+Both Agent A (EfficientNet-B4) and Agent B (ViT-B/16) exhibit poor sensitivity on minority classes, specifically **VASC (Vascular Lesions)**, which they frequently misclassify as **DF (Dermatofibroma)**. 
+*   **Cause:** Extreme class imbalance in the training data (e.g., ISIC-2018 is 66.7% NV vs only 1.1% DF and 1.4% VASC). Standard cross-entropy loss trained on this distribution forces the backbones to ignore minority classes.
+*   **Resolution Plan:** Retraining models using Focal Loss or Class-Balanced loss, oversampling VASC/SCC inputs, or upgrading to modern medical-imaging pre-trained backbones (e.g., ConvNeXt-V2 or EVA-02).
+
+### 8.2. scikit-learn Version Mismatch
+The trained `consensus_lgbm.pkl` and `consensus_scaler.pkl` checkpoints were created using `scikit-learn==1.6.1`. 
+*   **Issue:** The default Docker backend environment used `scikit-learn==1.5.0`. This difference triggers serialization warnings and can silently corrupt `IsotonicRegression` calibrators wrapped inside `CalibratedClassifierCV` during unpickling.
+*   **Resolution:** The Docker container's python environment is patched at runtime to install `scikit-learn==1.6.1` to align with the training environment.
+
+---
+
+## 9. Running & Deployment
+
+### 9.1. Docker Compose (Full Stack)
 The recommended way to boot the ecosystem:
 ```bash
 docker compose up --build
@@ -363,7 +423,7 @@ docker compose up --build
 *   The application binds to `localhost:80`.
 *   A `hf-cache` Docker volume persists pretrained backbone weights downloaded via `timm` during the first run to accelerate subsequent boots.
 
-### 7.2. Local Development Run
+### 9.2. Local Development Run
 If debugging specific microservices locally:
 
 **Backend:**
