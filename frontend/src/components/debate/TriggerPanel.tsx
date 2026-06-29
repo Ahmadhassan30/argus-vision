@@ -250,9 +250,6 @@ export default function TriggerPanel({ trigger }: TriggerPanelProps): React.JSX.
               >
                 {jsValue.toFixed(3)}
               </span>
-              <span className="mt-1 text-[10px] uppercase tracking-wider text-ink-faint">
-                of 1.000
-              </span>
             </div>
           </div>
           <div className="mt-3 font-mono text-[11px] tabular text-ink-faint">
@@ -282,7 +279,6 @@ export default function TriggerPanel({ trigger }: TriggerPanelProps): React.JSX.
           <div className="mt-4 flex items-center gap-2 font-mono text-[11px] tabular text-ink-faint">
             <span className="inline-block h-3 w-px bg-ink" aria-hidden />
             threshold {trigger.threshold_entropy.toFixed(2)} bits
-            <span className="text-ink-faint/70">· scale 0–3.0</span>
           </div>
         </section>
       </div>

@@ -17,6 +17,8 @@ interface ProbabilityBarsProps {
   color: string;
   /** Class id to highlight; defaults to the argmax of `probabilities`. */
   predClass?: string;
+  /** Show only the top-N classes by probability (default: all 8). */
+  max?: number;
   className?: string;
 }
 
@@ -37,6 +39,7 @@ export default function ProbabilityBars({
   probabilities,
   color,
   predClass,
+  max,
   className = "",
 }: ProbabilityBarsProps): React.JSX.Element {
   const [mounted, setMounted] = useState(false);
@@ -47,9 +50,15 @@ export default function ProbabilityBars({
 
   const leader = predClass ?? argmax(probabilities);
 
+  // Full canonical order, or just the top-N (still rendered highest-first).
+  const classes =
+    max && max < CLASS_ORDER.length
+      ? [...CLASS_ORDER].sort((a, b) => (probabilities[b] ?? 0) - (probabilities[a] ?? 0)).slice(0, max)
+      : CLASS_ORDER;
+
   return (
     <div className={["flex flex-col gap-1.5", className].join(" ")}>
-      {CLASS_ORDER.map((cls) => {
+      {classes.map((cls) => {
         const p = probabilities[cls] ?? 0;
         const pct = Math.round(p * 1000) / 10;
         const isLeader = cls === leader;
