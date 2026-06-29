@@ -38,6 +38,7 @@ from core.config import Settings, get_settings
 from core.models import (
     AgentResult,
     AttentionResult,
+    BoundingBox,
     ClassificationResult,
     ConsensusResult,
     TriggerResult,
@@ -291,6 +292,7 @@ class DebatePipeline:
             compute_disagreement, heatmap_a, heatmap_b
         )
         bbox = await asyncio.to_thread(extract_bbox, m_delta)
+        bbox = self._project_bbox_to_original_space(bbox, original_pil.size)
         disagreement_b64: str = await asyncio.to_thread(
             image_service.array_to_b64, m_delta
         )
@@ -312,6 +314,36 @@ class DebatePipeline:
         )
 
         return attention, heatmap_a, heatmap_b
+
+    @staticmethod
+    def _project_bbox_to_original_space(bbox: BoundingBox, original_size: tuple[int, int]) -> BoundingBox:
+        """Map a 224x224 crop-space bbox back onto the original image."""
+        orig_w, orig_h = original_size
+        if orig_w <= 0 or orig_h <= 0:
+            return bbox
+
+        target_size = 256.0
+        crop_size = 224.0
+        scale = target_size / float(min(orig_w, orig_h))
+        resized_w = float(orig_w) * scale
+        resized_h = float(orig_h) * scale
+        offset_x = max(0.0, (resized_w - crop_size) * 0.5)
+        offset_y = max(0.0, (resized_h - crop_size) * 0.5)
+
+        def _clamp(value: float, upper: int) -> int:
+            return int(min(max(round(value), 0), upper))
+
+        x1 = _clamp((bbox.x1 + offset_x) / scale, orig_w - 1)
+        y1 = _clamp((bbox.y1 + offset_y) / scale, orig_h - 1)
+        x2 = _clamp((bbox.x2 + offset_x) / scale, orig_w - 1)
+        y2 = _clamp((bbox.y2 + offset_y) / scale, orig_h - 1)
+
+        if x2 < x1:
+            x1, x2 = x2, x1
+        if y2 < y1:
+            y1, y2 = y2, y1
+
+        return BoundingBox(x1=x1, y1=y1, x2=x2, y2=y2)
 
     @staticmethod
     def _ordered_probs(probabilities: dict[str, float]) -> list[float]:
