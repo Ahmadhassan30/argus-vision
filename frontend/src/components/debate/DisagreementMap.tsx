@@ -1,147 +1,163 @@
 "use client";
 
 /**
- * DisagreementMap visualizes the contested region between the two agents. It
- * renders the disagreement heatmap (with the contested bounding box overlaid
- * via {@link HeatmapCanvas}) and, below it, a comparison of the mean activation
- * inside the contested region for Agent A versus Agent B. When no attention
- * result is available it renders a faint placeholder.
+ * DisagreementMap — the spatial-attention grid. Lays four HeatmapCanvas tiles
+ * side by side (Agent A's Grad-CAM++, Agent B's attention rollout, their
+ * disagreement map, and the source lesion with the contested region boxed) so a
+ * clinician can read *where* the two minds diverged, not just that they did. A
+ * single overlay toggle crossfades the contested bounding box on the source
+ * tile, and a row of region-stat chips quantifies each agent's attention mass
+ * per region. Tile layout is fixed-square so nothing reflows as images land.
  */
 
-import { motion } from "framer-motion";
+import { useState } from "react";
+
 import type { AttentionResult } from "@/types/debate";
-import { AGENT_A_COLOR, AGENT_B_COLOR } from "@/lib/constants";
 import HeatmapCanvas from "@/components/debate/HeatmapCanvas";
+import { AGENT_A, AGENT_B, COLORS, ATTENTION_CAPTIONS } from "@/lib/constants";
 
-/** The region-stats key holding the mean activation in the contested region. */
-const MEAN_KEY = "mean";
-
-/** Props for {@link DisagreementMap}. */
-export interface DisagreementMapProps {
-  /** The spatial attention result, or null before it is computed. */
-  attention: AttentionResult | null;
+interface DisagreementMapProps {
+  attention: AttentionResult;
+  sourceB64?: string | null;
 }
 
-/**
- * Extracts a representative scalar (the contested-region mean activation) from
- * a region-stats map. Falls back to the first numeric value, then to 0.
- *
- * @param stats - The per-agent region statistics map.
- * @returns The mean activation in [0, ...], defaulting to 0 when absent.
- */
-function regionMean(stats: Record<string, number>): number {
-  if (typeof stats[MEAN_KEY] === "number") {
-    return stats[MEAN_KEY];
-  }
-  const values = Object.values(stats);
-  return values.length > 0 ? values[0] : 0;
-}
-
-/**
- * A single labeled activation comparison row with a proportional bar.
- *
- * @param props - The agent label, color, value, and the shared max for scaling.
- * @returns The rendered stat row.
- */
-function StatRow({
-  label,
-  color,
-  value,
-  max,
+/** One labelled tile: mono uppercase title, heatmap canvas, then a faint caption. */
+function MapCell({
+  title,
+  caption,
+  children,
 }: {
-  label: string;
-  color: string;
-  value: number;
-  max: number;
-}): JSX.Element {
-  const widthPct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
-
+  title: string;
+  caption: string;
+  children: React.ReactNode;
+}): React.JSX.Element {
   return (
-    <div className="flex items-center gap-3">
-      <span
-        className="w-16 shrink-0 font-display text-[11px] font-semibold uppercase tracking-wide"
-        style={{ color }}
-      >
-        {label}
-      </span>
-      <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-argus-black ring-1 ring-inset ring-argus-border">
-        <motion.div
-          className="h-full rounded-full"
-          style={{ backgroundColor: color }}
-          initial={{ width: "0%" }}
-          animate={{ width: `${widthPct}%` }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-        />
+    <div className="flex flex-col gap-2">
+      <div className="font-mono text-[10px] font-medium uppercase tracking-wider text-ink-soft">
+        {title}
       </div>
-      <span className="w-16 shrink-0 text-right font-mono tabular-nums text-xs text-white">
-        {value.toFixed(3)}
-      </span>
+      {children}
+      <p className="text-xs text-ink-faint">{caption}</p>
     </div>
   );
 }
 
-/**
- * Renders the contested-region disagreement map and per-agent activation stats.
- *
- * @param props - The attention result or null.
- * @returns The rendered map, or a faint placeholder when no result is present.
- */
+/** A labelled cluster of region-attention chips for one agent. */
+function RegionGroup({
+  label,
+  accent,
+  stats,
+}: {
+  label: string;
+  accent: string;
+  stats: Record<string, number>;
+}): React.JSX.Element {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-1.5">
+        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: accent }} />
+        <span className="text-[10px] font-medium uppercase tracking-wider text-ink-faint">
+          {label}
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {Object.entries(stats).map(([key, value]) => (
+          <span
+            key={key}
+            className="inline-flex items-center gap-1.5 rounded-md border border-hairline bg-surface-alt px-2 py-1"
+          >
+            <span className="font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+              {key}
+            </span>
+            <span className="font-mono text-[11px] tabular text-ink">
+              {value.toFixed(2)}
+            </span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function DisagreementMap({
   attention,
-}: DisagreementMapProps): JSX.Element {
-  if (attention === null) {
-    return (
-      <div className="flex flex-col gap-2 rounded-xl border border-dashed border-argus-border bg-argus-surface/40 p-5">
-        <span className="font-display text-xs uppercase tracking-[0.2em] text-argus-muted/60">
-          Contested region
-        </span>
-        <p className="font-mono text-xs text-argus-muted/60">
-          Awaiting spatial attention analysis…
-        </p>
-      </div>
-    );
-  }
-
-  const meanA = regionMean(attention.region_stats_a);
-  const meanB = regionMean(attention.region_stats_b);
-  const max = Math.max(meanA, meanB);
+  sourceB64,
+}: DisagreementMapProps): React.JSX.Element {
+  const [overlay, setOverlay] = useState(true);
 
   return (
-    <motion.div
-      className="flex flex-col gap-4 rounded-xl border border-argus-border bg-argus-surface p-5"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+    <section
+      aria-label="Spatial attention analysis"
+      className="rounded-2xl border border-hairline bg-surface p-6 shadow-panel animate-panel-enter"
     >
-      <span className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-argus-danger">
-        Contested region
-      </span>
+      {/* Header */}
+      <header className="mb-5 flex items-center justify-between gap-4">
+        <h3 className="font-display text-xl leading-tight text-ink">
+          Spatial attention analysis
+        </h3>
+        <button
+          type="button"
+          onClick={() => setOverlay((v) => !v)}
+          aria-pressed={overlay}
+          className="rounded-full border border-hairline px-3 py-1 font-mono text-[10px] font-medium uppercase tracking-wider text-ink-soft transition-colors hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-faint"
+        >
+          {overlay ? "Show raw" : "Show overlay"}
+        </button>
+      </header>
 
-      <div className="mx-auto w-full max-w-xs">
-        <HeatmapCanvas
-          originalImageSrc={`data:image/png;base64,${attention.disagreement_b64}`}
-          heatmapB64={null}
-          bbox={attention.bbox}
-        />
+      {/* Tile grid */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MapCell title="Agent A · Grad-CAM++" caption={ATTENTION_CAPTIONS.a}>
+          <HeatmapCanvas
+            b64={attention.heatmap_a_b64}
+            accent={AGENT_A.color}
+            showOverlay={false}
+            alt="Agent A Grad-CAM++"
+          />
+        </MapCell>
+
+        <MapCell title="Agent B · Attn Rollout" caption={ATTENTION_CAPTIONS.b}>
+          <HeatmapCanvas
+            b64={attention.heatmap_b_b64}
+            accent={AGENT_B.color}
+            showOverlay={false}
+            alt="Agent B Attention Rollout"
+          />
+        </MapCell>
+
+        <MapCell title="Disagreement" caption={ATTENTION_CAPTIONS.disagreement}>
+          <HeatmapCanvas
+            b64={attention.disagreement_b64}
+            accent={COLORS.warning}
+            showOverlay={false}
+            alt="Disagreement map"
+          />
+        </MapCell>
+
+        <MapCell title="Source · contested" caption={ATTENTION_CAPTIONS.source}>
+          <HeatmapCanvas
+            b64={sourceB64 ?? attention.disagreement_b64}
+            bbox={attention.bbox}
+            accent={COLORS.danger}
+            showOverlay={overlay}
+            alt="Source lesion with contested region"
+          />
+        </MapCell>
       </div>
 
-      <div className="flex flex-col gap-2.5">
-        <span className="font-display text-[11px] uppercase tracking-wide text-argus-muted">
-          Mean activation in contested region
-        </span>
-        <StatRow
-          label="Agent A"
-          color={AGENT_A_COLOR}
-          value={meanA}
-          max={max}
+      {/* Region-stat chips */}
+      <div className="mt-6 flex flex-col gap-4 border-t border-hairline pt-5 sm:flex-row sm:gap-10">
+        <RegionGroup
+          label="Agent A region"
+          accent={AGENT_A.color}
+          stats={attention.region_stats_a}
         />
-        <StatRow
-          label="Agent B"
-          color={AGENT_B_COLOR}
-          value={meanB}
-          max={max}
+        <RegionGroup
+          label="Agent B region"
+          accent={AGENT_B.color}
+          stats={attention.region_stats_b}
         />
       </div>
-    </motion.div>
+    </section>
   );
 }

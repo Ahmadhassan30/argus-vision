@@ -2,6 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================================
+   Argus Vision — "Luminous Clinical Theatre"
+   Bright, high-contrast, scientifically precise. The same token values live in
+   tailwind.config.ts (for utility classes) and lib/constants.ts (for canvas /
+   WebGL); these CSS variables exist for raw CSS, gradients and JS reads.
+   ========================================================================== */
+:root {
+  --bg-canvas: #f7f8fc;
+  --bg-surface: #ffffff;
+  --bg-surface-alt: #eff1f8;
+
+  --accent-agent-a: #2563eb;
+  --accent-agent-b: #7c3aed;
+  --accent-consensus: #059669;
+  --accent-warning: #d97706;
+  --accent-danger: #dc2626;
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+
+  --border-subtle: #e2e8f0;
+  --border-active: rgba(37, 99, 235, 0.4);
+
+  --glow-agent-a: 0 0 0 3px rgba(37, 99, 235, 0.15), 0 4px 24px rgba(37, 99, 235, 0.12);
+  --glow-agent-b: 0 0 0 3px rgba(124, 58, 237, 0.15), 0 4px 24px rgba(124, 58, 237, 0.12);
+  --glow-consensus: 0 0 0 3px rgba(5, 150, 105, 0.2), 0 4px 32px rgba(5, 150, 105, 0.18);
+}
+
 @layer base {
   html,
   body {
@@ -9,69 +38,115 @@
   }
 
   body {
-    background-color: #0a0a0f;
-    color: #ffffff;
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    font-family: var(--font-body), system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: rgba(37, 99, 235, 0.16);
+    color: var(--text-primary);
   }
 }
 
 @layer utilities {
-  /* Faint engineering-style grid with a subtle radial vignette. */
-  .bg-argus-grid {
-    background-color: #0a0a0f;
+  /* Numeric columns stay aligned (probabilities, gauges, timers). */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* The "noon operating theatre" page wash: an almost-imperceptible cool grid
+     plus a soft overhead light, sitting beneath the WebGL particle field. */
+  .bg-theatre {
+    background-color: var(--bg-canvas);
     background-image:
       radial-gradient(
-        circle at 50% 30%,
-        rgba(30, 30, 46, 0.35) 0%,
-        rgba(10, 10, 15, 0.9) 70%,
-        rgba(10, 10, 15, 1) 100%
+        120% 80% at 50% -10%,
+        rgba(255, 255, 255, 0.9) 0%,
+        rgba(247, 248, 252, 0) 55%
       ),
-      repeating-linear-gradient(
-        0deg,
-        rgba(30, 30, 46, 0.18) 0px,
-        rgba(30, 30, 46, 0.18) 1px,
-        transparent 1px,
-        transparent 40px
-      ),
-      repeating-linear-gradient(
-        90deg,
-        rgba(30, 30, 46, 0.18) 0px,
-        rgba(30, 30, 46, 0.18) 1px,
-        transparent 1px,
-        transparent 40px
-      );
+      linear-gradient(180deg, rgba(239, 241, 248, 0.5) 0%, rgba(247, 248, 252, 0) 18%);
   }
 
-  /* Streaming token cursor. */
-  .blink-cursor {
-    display: inline-block;
-    width: 0.5ch;
-    animation: blink 1s step-end infinite;
+  /* Streaming typewriter caret used by the argument stream. */
+  .stream-caret::after {
+    content: "▋";
+    margin-left: 1px;
+    animation: blink 1s step-start infinite;
+    color: currentColor;
+  }
+
+  /* Skeleton shimmer for panels awaiting data. */
+  .shimmer {
+    background-image: linear-gradient(
+      100deg,
+      var(--bg-surface-alt) 30%,
+      rgba(255, 255, 255, 0.9) 50%,
+      var(--bg-surface-alt) 70%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+
+  /* Thin, light scrollbar matching the clinical surfaces. */
+  .scroll-clinical {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-subtle) transparent;
+  }
+  .scroll-clinical::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scroll-clinical::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scroll-clinical::-webkit-scrollbar-thumb {
+    background-color: var(--border-subtle);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  .scroll-clinical::-webkit-scrollbar-thumb:hover {
+    background-color: var(--text-muted);
   }
 }
 
-/* Thin custom scrollbar. */
+/* Page-wide thin scrollbar (light theme). */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #1e1e2e #0a0a0f;
+  scrollbar-color: #cbd5e1 transparent;
 }
-
 *::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
-
 *::-webkit-scrollbar-track {
-  background: #0a0a0f;
+  background: transparent;
 }
-
 *::-webkit-scrollbar-thumb {
-  background-color: #1e1e2e;
+  background-color: #cbd5e1;
   border-radius: 9999px;
-  border: 2px solid #0a0a0f;
+  border: 3px solid var(--bg-canvas);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
 }
 
-*::-webkit-scrollbar-thumb:hover {
-  background-color: #6b7280;
+/* ----------------------------------------------------------------------------
+   Accessibility: honour reduced-motion. All decorative animation collapses to
+   a static end-state; the WebGL field reads this flag and renders a single calm
+   frame instead of animating (see lib/webgl-particles.ts).
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
