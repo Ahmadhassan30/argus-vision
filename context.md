@@ -1,177 +1,248 @@
 # Argus Vision Project Context
 
-This file serves as the definitive reference for the **Argus Vision** project, providing a comprehensive, deep-dive context of its architecture, modules, machine learning pipeline, data contracts, and folder structure. It is designed to give any AI agent or developer the complete context required to understand, develop, debug, and maintain the repository.
+This file serves as the definitive, encyclopedic reference for the **Argus Vision** project. It provides a comprehensive, deep-dive context covering the architecture, module behavior, exact machine learning pipeline mechanics, internal data schemas, API contracts, WebSocket protocols, and repository structure. It is expressly designed to give an AI agent or a senior developer the *complete context* from the macro system topography down to the micro-level implementation details required to develop, debug, and maintain this system.
+
+> [!WARNING]
+> Previous versions of this system used a natural language LLM debate (via Groq) and sentence embeddings. **This has been completely refactored.** The system now relies entirely on a deterministic, highly calibrated **23-dimensional numerical consensus contract** and a LightGBM fusion head. There is no longer an active LLM step, but certain Pydantic schemas (e.g., `ArgumentResult`) remain historically in `core/models.py` for backward compatibility with old database jobs.
 
 ---
 
 ## 1. Project Overview & Clinical Goal
 
-**Argus Vision** is a medical image classification application designed to diagnose dermoscopic skin-lesion images into one of the 8 canonical **ISIC (International Skin Imaging Collaboration)** categories:
+**Argus Vision** is a cutting-edge medical image classification platform designed to diagnose dermoscopic skin-lesion images into one of the 8 canonical **ISIC (International Skin Imaging Collaboration)** categories. 
 
-| Code | Diagnosis Name | Clinical Summary / Dermoscopic Criteria |
-| :--- | :--- | :--- |
-| **MEL** | Melanoma | Atypical, broadened pigment network; irregular streaks; structural/colour asymmetry; regression areas; blue-white veil; irregular dots/globules; chaotic vessels. |
-| **NV** | Melanocytic Nevus | Symmetric, regular reticular or globular pattern; uniform colouration; smooth transition to surrounding skin; center-symmetric structure; no chaotic borders. |
-| **BCC** | Basal Cell Carcinoma | Arborising (tree-like branching) vessels; blue-grey ovoid nests; pigment-network-free background; leaf-like areas; spoke-wheel structures; shiny white-red structureless zones. |
-| **AK** | Actinic Keratosis | 'Strawberry' pattern on facial skin; red pseudo-network of dilated vessels surrounding keratin-plugged follicular openings; white rosettes under polarised light; scaly background. |
-| **BKL** | Benign Keratosis | Seborrhoeic/lichenoid keratosis; cerebriform 'brain-like' surface; milia-like cysts; comedo-like openings; sharply demarcated borders; stuck-on appearance; fat-finger structures. |
-| **DF** | Dermatofibroma | Central white scar-like patch; peripheral delicate pigment network; firm tan-brown ring; central dimpling on lateral compression. |
-| **VASC** | Vascular Lesion | Haemangiomas/angiokeratomas; sharply demarcated red, purple, or maroon lacunae separated by pale septa; absence of melanocytic pigment network. |
-| **SCC** | Squamous Cell Carcinoma | Central keratin masses; white circles around follicular openings; surface scale/ulceration; peripheral hairpin/looped and glomerular/coiled vessels. |
+| Index | Code | Diagnosis Name | Clinical Summary & Dermoscopic Criteria |
+| :--- | :--- | :--- | :--- |
+| **0** | **MEL** | Melanoma | Atypical, broadened pigment network; irregular streaks; structural/colour asymmetry; regression areas; blue-white veil; irregular dots/globules; chaotic vessels. |
+| **1** | **NV** | Melanocytic Nevus | Symmetric, regular reticular or globular pattern; uniform colouration; smooth transition to surrounding skin; center-symmetric structure; no chaotic borders. |
+| **2** | **BCC** | Basal Cell Carcinoma | Arborising (tree-like branching) vessels; blue-grey ovoid nests; pigment-network-free background; leaf-like areas; spoke-wheel structures; shiny white-red structureless zones. |
+| **3** | **AK** | Actinic Keratosis | 'Strawberry' pattern on facial skin; red pseudo-network of dilated vessels; white rosettes under polarised light; scaly background. |
+| **4** | **BKL** | Benign Keratosis | Seborrhoeic/lichenoid keratosis; cerebriform 'brain-like' surface; milia-like cysts; comedo-like openings; sharply demarcated borders. |
+| **5** | **DF** | Dermatofibroma | Central white scar-like patch; peripheral delicate pigment network; firm tan-brown ring; central dimpling on lateral compression. |
+| **6** | **VASC** | Vascular Lesion | Haemangiomas/angiokeratomas; sharply demarcated red, purple, or maroon lacunae separated by pale septa; absence of melanocytic pigment network. |
+| **7** | **SCC** | Squamous Cell Carcinoma | Central keratin masses; white circles around follicular openings; surface scale/ulceration; peripheral hairpin/looped and glomerular/coiled vessels. |
 
-Rather than relying on a single vision classifier (which might be overconfident or poorly calibrated), Argus Vision uses an **adversarial multi-agent visual debate**:
+Rather than relying on a single vision classifier (which might be overconfident or poorly calibrated near decision boundaries), Argus Vision uses an **Adversarial Dual-Agent Architecture** with an **Intelligent Debate Trigger** and a **Calibrated Consensus Head**:
 1. **Two distinct model backbones** (a CNN and a Vision Transformer) analyze the image independently.
-2. If they disagree or are uncertain, they enter a structured **2-round natural language debate** powered by an LLM (via Groq).
-3. The LLM arguments are grounded in **spatial attention saliency maps** (Grad-CAM++ and attention rollout) over the contested region.
-4. A **calibrated MLP consensus head** fuses the agents' probability vectors, spatial region statistics, and the sentence embeddings of their arguments to yield the final, temperature-scaled prediction with an Expected Calibration Error (ECE) estimate.
+2. If they disagree or exhibit high entropy (uncertainty), they trigger a spatial attention analysis.
+3. A calibrated **LightGBM consensus head** (with PyTorch MLP fallback) fuses the agents' probability vectors, spatial region statistics, and trigger divergences into a 23-dimensional numerical vector to yield the final, calibrated prediction.
 
 ---
 
 ## 2. Architecture & System Topography
 
-### Network Topology
-```
-                        ┌─────────────┐
-                        │   Browser   │
-                        └──────┬──────┘
-                               │  http / ws
-                        ┌──────▼──────┐
-                        │  nginx :80  │
-                        └──┬───────┬──┘
-                   /  (ui)  │       │  /api  /ws
-                   ┌────────▼─┐   ┌─▼──────────────┐
-                   │ frontend │   │   backend       │
-                   │ Next.js  │   │   FastAPI       │
-                   │  :3000   │   │   :8000         │
-                   └──────────┘   └──┬──────────────┘
-                                     │
-                               ┌─────▼─────┐
-                               │  redis    │
-                               │  :6379    │
-                               │ (jobs +   │
-                               │  pub/sub) │
-                               └───────────┘
+Argus Vision operates as a full-stack orchestrated environment. 
+
+### Network Topology Diagram
+
+```mermaid
+graph TD
+    User([Browser UI / Client]) <-->|HTTP / WS| Nginx[Nginx Reverse Proxy :80]
+    
+    subgraph Frontend Tier
+        Nginx <-->|UI Route / | FE[Next.js Frontend :3000]
+    end
+    
+    subgraph Backend Tier
+        Nginx <-->|API Route /api| BE[FastAPI Backend :8000]
+        Nginx <-->|WS Route /ws| BE
+        BE <-->|Queue / PubSub| Redis[(Redis :6379)]
+    end
+    
+    subgraph ML Pipeline Thread Pool
+        BE -.->|asyncio.to_thread| AgentA[Agent A: EfficientNet]
+        BE -.->|asyncio.to_thread| AgentB[Agent B: ViT]
+        BE -.->|asyncio.to_thread| Consensus[LightGBM / MLP Consensus]
+    end
 ```
 
-*   **Nginx (Port 80):** Operates as the entry reverse proxy. It routes `/api/*` to the FastAPI backend, `/ws/*` to the FastAPI WebSocket endpoints, and all other traffic `/` to the Next.js frontend.
-*   **Frontend (Port 3000):** A Next.js application that provides the image upload dropzone interface and renders the real-time websocket debate.
-*   **Backend (Port 8000):** A FastAPI app that exposes endpoints for image upload, polling, and the WebSocket connection.
-*   **Redis (Port 6379):** Acts as the database and real-time message broker:
+### Microservice Roles
+1. **Nginx (Port 80):** Operates as the entry reverse proxy. It routes `/api/*` to the FastAPI backend, `/ws/*` to the FastAPI WebSocket endpoints, and all other traffic `/` to the Next.js frontend.
+2. **Frontend (Port 3000):** A Next.js application that provides the image upload dropzone interface and renders the real-time websocket pipeline events (heatmaps, confidence bars, bounding boxes).
+3. **Backend (Port 8000):** A FastAPI app that exposes REST endpoints for image upload/polling, and WebSocket endpoints for streaming inference progress. All blocking ML inference is offloaded to worker threads via `asyncio.to_thread`.
+4. **Redis (Port 6379):** The central database and real-time message broker:
     *   Saves job metadata (`JobResult` JSON string) under the key `argus:job:{job_id}`.
     *   Saves the raw uploaded image path under `argus:img:{job_id}`.
-    *   Standard job TTL (Time-To-Live) is **3600 seconds** (1 hour).
-    *   Streams real-time debate steps over pub/sub channels named `argus:debate:{job_id}`.
+    *   Streams real-time pipeline steps to connected UI clients over pub/sub channels named `argus:debate:{job_id}`.
 
 ---
 
-## 3. The End-to-End Machine Learning Pipeline
+## 3. The End-to-End Machine Learning Pipeline (Micro-Level)
 
-The backend orchestrates the ML pipeline in a single flow defined in [pipeline.py](file:///c:/Users/ahmad/Desktop/argus-vision/backend/ml/pipeline.py). Blocking CPU/GPU operations (Inference, Groq APIs, Sentence-Transformers) are run in background threads using `asyncio.to_thread` to ensure the FastAPI event loop remains responsive.
+The entire ML execution is defined in `backend/ml/pipeline.py` via the `DebatePipeline` orchestrator.
 
-```
-┌────────────────────────────────────────────────────────┐
-│ Preprocess uploaded image -> PyTorch Tensor [1,3,224,224]│
-└───────────────────────────┬────────────────────────────┘
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│ Stage 1: Run Classifier Agents                         │
-│ - Agent A (EfficientNet-B4) -> Probability Dist pA    │
-│ - Agent B (ViT-B/16)        -> Probability Dist pB    │
-└───────────────────────────┬────────────────────────────┘
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│ Stage 2: Evaluate Trigger                              │
-│ - JS Divergence = jensenshannon(pA, pB)^2              │
-│ - Entropy A = ShannonEntropy(pA), Entropy B = ...      │
-│ - Trigger Fired = (JS > Threshold) OR (max_ent > Thresh)│
-└───────────────────────────┬────────────────────────────┘
-                            │
-              ┌─────────────┴─────────────┐
-              │ Trigger Fired?            │
-              ├─────────────┬─────────────┤
-              │ YES         │ NO          │
-              ▼             ▼
-┌─────────────────────────┐ ┌────────────────────────────┐
-│ Stage 3: Attention      │ │ Fast Path (No Debate)      │
-│ - Grad-CAM++ (Agent A)  │ │ - Spatial stats = [0,0,0,0]│
-│ - Rollout (Agent B)     │ │ - Embedding A = [0]*384    │
-│ - Disagreement Map      │ │ - Embedding B = [0]*384    │
-│ - Bounding Box (top 20%)│ └─────────────┬──────────────┘
-│ - Spatial stats         │               │
-└─────────────┬───────────┘               │
-              ▼                           │
-┌─────────────────────────┐               │
-│ Stage 4: LLM Debate     │               │
-│ - Round 1: Defend       │               │
-│ - Round 2: Rebut + Delta│               │
-│ - Encode R2 args to     │               │
-│   384-d sentence embeds │               │
-│ - Nudge & renorm probs  │               │
-└─────────────┬───────────┘               │
-              ▼                           │
-              └─────────────┬─────────────┘
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│ Stage 5: Consensus Fusion MLP                          │
-│ Input: Concatenated vector (788 dimensions)            │
-│ Vector: [pA (8) + pB (8) + Spatial (4) + eA(384) + eB(384)]│
-│ Architecture: 788 -> 512 -> 256 -> 8                   │
-│ Scaling: logits / temperature                          │
-│ Output: Calibrated Consensus Prediction                │
-└────────────────────────────────────────────────────────┘
+### Pipeline Execution Flow
+
+```mermaid
+flowchart TD
+    Preprocess[Preprocess Image to Tensor 1x3x224x224] --> Stage1
+    
+    subgraph Stage 1: Classifier Agents
+        Stage1[Run Agents]
+        Stage1 --> AA[Agent A: EfficientNet-B4] --> pA[Prob Dist pA]
+        Stage1 --> AB[Agent B: ViT-B/16] --> pB[Prob Dist pB]
+    end
+    
+    pA & pB --> Stage2
+    
+    subgraph Stage 2: Evaluate Trigger
+        Stage2{Evaluate JS Divergence & Entropy}
+    end
+    
+    Stage2 -->|JS > 0.25 OR Max Entropy > 0.8| Stage3
+    Stage2 -->|Fast Path: Agree & Confident| Stage4
+    
+    subgraph Stage 3: Spatial Attention Analysis
+        Stage3[Compute Heatmaps]
+        Stage3 --> G[Grad-CAM++ for Agent A]
+        Stage3 --> R[Attention Rollout for Agent B]
+        G & R --> Diff[Disagreement Map & Bounding Box]
+        Diff --> Stats[Spatial IoU & Entropy Stats]
+    end
+    
+    Stats --> Stage4
+    
+    subgraph Stage 4: 23-Dim Feature Extraction
+        Stage4[Extract 23-Dimensional Numerical Contract]
+    end
+    
+    Stage4 --> Stage5
+    
+    subgraph Stage 5: Consensus Fusion
+        Stage5[Scale features via StandardScaler]
+        Stage5 --> LGBM[LightGBM Prediction]
+        LGBM -.->|Fallback if missing| MLP[PyTorch MLP + Temp Scaling]
+    end
+    
+    Stage5 --> Output[Calibrated Consensus Result]
 ```
 
-### 3.1. Classifier Agents
-*   **Agent A (`backend/ml/agents/agent_a.py`):** Wraps `timm` model `efficientnet_b4`. It processes a pre-processed `(1, 3, 224, 224)` image tensor.
+### 3.1. Stage 1: Classifier Agents
+*   **Agent A (`backend/ml/agents/agent_a.py`):** Wraps `timm` model `efficientnet_b4`. It processes a pre-processed `(1, 3, 224, 224)` image tensor normalized with ImageNet stats.
 *   **Agent B (`backend/ml/agents/agent_b.py`):** Wraps `timm` model `vit_base_patch16_224.augreg_in21k_ft_in1k`.
-*   **Loading Behavior:** The models load checkpoints (`agent_a_best.pth` and `agent_b_best.pth`) from `MODEL_CHECKPOINT_DIR`. If checkpoints are missing and `PRETRAINED_FALLBACK` is `True`, they fall back to ImageNet-pretrained weights (which yields random, clinically non-meaningful predictions, allowing testing without weights).
+*   Both models load checkpoints (`agent_a_best.pth` and `agent_b_best.pth`). If missing, they use `PRETRAINED_FALLBACK` to fall back to ImageNet weights (which allows system testing, though it yields random clinical predictions).
 
-### 3.2. Debate Trigger
-*   **Jensen-Shannon Divergence ($D_{JS}$):** The square of the JS distance (obtained using `scipy.spatial.distance.jensenshannon` with base-2 logarithm).
-*   **Shannon Entropy ($H$):** Measures uncertainty of a probability distribution $p$ in bits:
-    $$H(p) = - \sum_{i} p_i \log_2 (p_i + \epsilon)$$
-*   **Thresholds:** Trigger fires if:
-    *   $D_{JS}(p_A, p_B) > \text{DEBATE\_JS\_THRESHOLD}$ (default: `0.25`)
-    *   $\max(H(p_A), H(p_B)) > \text{DEBATE\_ENTROPY\_THRESHOLD}$ (default: `0.8` bits)
+### 3.2. Stage 2: Debate Trigger
+Determines if the image requires deep spatial analysis. Calculated in `backend/ml/debate/trigger.py`.
+*   **Jensen-Shannon Divergence ($D_{JS}$):** The square of the JS distance between $p_A$ and $p_B$ using base-2 logarithm.
+*   **Shannon Entropy ($H$):** Measures uncertainty of $p_A$ and $p_B$ in bits.
+*   **Thresholds:** Trigger fires if $D_{JS} > 0.25$ OR $\max(H(p_A), H(p_B)) > 0.8$.
 
-### 3.3. Spatial Attention & Disagreement Map
-When the debate trigger fires, the pipeline analyzes where the agents are focusing their visual attention:
-*   **Agent A Saliency Map:** Grad-CAM++ is computed against its predicted class.
-*   **Agent B Saliency Map:** Attention Rollout is computed by tracing self-attention weights across transformer layers.
-*   **Disagreement Map ($M_{\delta}$):** Absolute difference of independently min-max normalized maps:
-    $$M_{\delta} = | \bar{H}_A - \bar{H}_B |$$
-*   **Contested Region Mask:** Formed by the top 20% highest pixels of the combined normalized activation ($\bar{H}_A + \bar{H}_B$).
-*   **Spatial Stats:** Extracts the mean and standard deviation of each agent's attention map inside the contested region mask, returning a 4-element list:
-    $$\text{spatial\_stats} = [\text{mean}_A, \text{mean}_B, \text{std}_A, \text{std}_B]$$
-*   **Bounding Box:** Axis-aligned bounding box enclosing the top 20% pixels of the disagreement map $M_{\delta}$.
+### 3.3. Stage 3: Spatial Attention Analysis
+Calculated if the trigger fires.
+*   **Grad-CAM++:** Extracted from Agent A's final convolutional layer.
+*   **Attention Rollout:** Traces self-attention weights across Agent B's transformer layers.
+*   **Disagreement Map ($M_{\delta}$):** Absolute difference of independently min-max normalized attention maps.
+*   **Bounding Box:** Drawn around the top 20% highest activated pixels of the combined normalized map.
 
-### 3.4. LLM Debate
-*   **LLM Choice:** Groq API running `llama-3.3-70b-versatile` (or specified via `GROQ_MODEL`).
-*   **Prompt Construction:** The prompts inject class profiles, predicted class confidence, the bounding box coordinates, and the statistical attention indicators for the agent.
-*   **Debate Rounds:**
-    *   **Round 1:** The agent constructs a concise single paragraph defending its diagnosis, citing features inside the bounding box.
-    *   **Round 2:** The agent receives its round-1 argument and the opponent's round-1 argument. It drafts a counter-argument and must output a confidence adjustment:
-        `CONFIDENCE_DELTA: <float>` where the float is bounded between `[-0.3, 0.3]`.
-*   **Websocket streaming:** As the argument is generated, it is split into tokens and pushed over the websocket with a delay of `0.05`s to produce a typewriter effect.
-*   **Offline Fallback:** If the Groq key is absent or a call fails, a deterministic fallback argument is generated using the static class descriptions and the region statistics.
-*   **Sentence Encoding:** The final Round-2 rebuttals are encoded into 384-dimensional sentence embeddings using Hugging Face's `sentence-transformers/all-MiniLM-L6-v2`. Any encoding failure defaults to a 384-dimensional zero vector.
-*   **Probability Nudging:** The original predicted class probability is shifted by the parsed `CONFIDENCE_DELTA` (clamped to `[0, 1]` constraints) and the probability vector is renormalized to sum to 1.
+### 3.4. Stage 4: The 23-Dimensional Feature Contract
+Extracted in `backend/ml/debate/features.py`. This is the strict numerical vector passed to the consensus head.
 
-### 3.5. Consensus MLP & Temperature Calibration
-The final decision is made by the calibrated consensus head:
-*   **Inputs:** A concatenated 788-dimensional vector:
-    $$\text{Feature Vector} = [p_A \;(8) \parallel p_B \;(8) \parallel \text{spatial\_stats} \;(4) \parallel e_A \;(384) \parallel e_B \;(384)]$$
-*   **MLP Architecture:**
-    `Linear(788, 512) -> BatchNorm1d(512) -> ReLU -> Dropout(0.3) -> Linear(512, 256) -> BatchNorm1d(256) -> ReLU -> Dropout(0.3) -> Linear(256, 8)`
-*   **Logits Scaling:** Divided by a learnable temperature parameter $\sigma$ (initialized to `1.0`, clamped with a floor of `1e-2` to prevent division-by-zero):
-    $$p_i = \text{Softmax}\left(\frac{\text{logits}_i}{\max(\sigma, 10^{-2})}\right)$$
-*   **Expected Calibration Error (ECE):** A train-time calibration error that flows into the final response to indicate reliability.
+| Indices | Name | Description |
+| :--- | :--- | :--- |
+| **0 – 7** | `pA` | Softmax probability distribution of Agent A over the 8 classes. |
+| **8 – 15** | `pB` | Softmax probability distribution of Agent B over the 8 classes. |
+| **16** | `js_div` | Jensen-Shannon divergence ($D_{JS}$) between `pA` and `pB`. |
+| **17** | `entropy_a` | Shannon entropy of `pA` (in bits). |
+| **18** | `entropy_b` | Shannon entropy of `pB` (in bits). |
+| **19** | `max_prob_delta` | Maximum absolute class difference $\max \|pA - pB\|$. |
+| **20** | `attn_iou` | Intersection over Union (IoU) of the two attention maps thresholded at 0.5. |
+| **21** | `attn_entropy_a` | Shannon entropy of Agent A's normalized spatial attention map. |
+| **22** | `attn_entropy_b` | Shannon entropy of Agent B's normalized spatial attention map. |
+
+*Note: If the trigger does NOT fire (the fast path), `attn_iou`, `attn_entropy_a`, and `attn_entropy_b` are set to `0.0`.*
+
+### 3.5. Stage 5: Consensus Classifier MLP & Calibration
+Located in `backend/ml/consensus/classifier.py`.
+1.  **StandardScaler:** The 23-d vector is standardized `(x - mean) / scale` using `consensus_scaler.pkl` (with `consensus_scaler.json` as a numpy fallback).
+2.  **LightGBM Fusion:** The system attempts to load `consensus_lgbm.pkl`. Tree-based gradient boosting yields exceptionally well-calibrated probabilities on these 23 tabular features.
+3.  **PyTorch MLP Fallback:** If LightGBM is absent, the system uses a PyTorch MLP (`Linear(23, 128) -> ReLU -> Linear(128, 64) -> ReLU -> Linear(64, 8)`). The output logits are divided by a learnable temperature scalar $\sigma$ (min bounded at $10^{-2}$) before Softmax.
+4.  **ECE (Expected Calibration Error):** Emitted natively alongside the consensus to indicate statistical reliability to the frontend.
 
 ---
 
-## 4. File Structure & Module Directory Map
+## 4. API Contracts & JSON Payloads (core/models.py)
 
+The backend and frontend strictly adhere to Pydantic-defined JSON contracts.
+
+### 4.1 REST API
+
+**`POST /api/classify`**
+*   **Input:** `multipart/form-data` with a `file` field.
+*   **Output:** `{"job_id": "uuid", "status": "queued", "estimated_seconds": 10}`
+
+**`GET /api/jobs/{job_id}`**
+Returns the entire JobResult state document.
+```json
+{
+  "job_id": "8bc5a0e0-47b2-4d2d-8068-07e15bf9ec2d",
+  "status": "consensus_done",
+  "created_at": "2026-06-18T14:40:00Z",
+  "updated_at": "2026-06-18T14:40:10Z",
+  "agent_a": {
+    "agent_id": "A",
+    "result": {
+      "pred_class": "MEL",
+      "confidence": 0.72,
+      "probabilities": { "MEL": 0.72, "NV": 0.10 }
+    },
+    "heatmap_b64": "data:image/png;base64,..."
+  },
+  "agent_b": {
+    "agent_id": "B",
+    "result": {
+      "pred_class": "BKL",
+      "confidence": 0.61,
+      "probabilities": { "MEL": 0.05, "BKL": 0.61 }
+    },
+    "heatmap_b64": "data:image/png;base64,..."
+  },
+  "trigger": {
+    "fired": true,
+    "js_divergence": 0.38,
+    "entropy_a": 0.95,
+    "entropy_b": 1.12,
+    "threshold_js": 0.25,
+    "threshold_entropy": 0.8
+  },
+  "attention": {
+    "heatmap_a_b64": "data:image/png;base64,...",
+    "heatmap_b_b64": "data:image/png;base64,...",
+    "disagreement_b64": "data:image/png;base64,...",
+    "bbox": { "x1": 42, "y1": 30, "x2": 150, "y2": 180 },
+    "region_stats_a": { "mean": 0.58, "std": 0.12 },
+    "region_stats_b": { "mean": 0.41, "std": 0.19 }
+  },
+  "consensus": {
+    "pred_class": "MEL",
+    "confidence": 0.79,
+    "probabilities": { "MEL": 0.79, "NV": 0.05 },
+    "temperature": 1.15,
+    "ece": 0.042
+  },
+  "error": null
+}
 ```
+
+### 4.2 WebSocket Event Protocol (`WS /ws/debate/{job_id}`)
+Managed in `backend/api/websocket/debate_stream.py`. Clients receive a Discriminated Union of JSON messages categorized by the `type` field.
+*   **`{"type": "ping"}`**: Sent every 30s as a keepalive.
+*   **`{"type": "agents_running"}`**: Emitted when agents start.
+*   **`{"type": "agents_done", "agent_a": {...}, "agent_b": {...}}`**: Fired when CNN and ViT complete inference.
+*   **`{"type": "trigger_evaluated", "result": {...}}`**: Contains the JS/Entropy calculation.
+*   **`{"type": "attention_computed", "result": {...}}`**: Emitted when Grad-CAM++ and Rollout base64 maps are generated.
+*   **`{"type": "consensus_done", "result": {...}}`**: Final calibrated result.
+*   **`{"type": "error", "message": "..."}`**: Emitted on pipeline failure.
+
+*(Note: Although models like `ArgumentTokenEvent` exist in `core/models.py` for legacy compatibility, they are no longer emitted by `pipeline.py`.)*
+
+---
+
+## 5. File Structure & Complete Directory Map
+
+A comprehensive mapping of the repository layout:
+
+```text
 argus-vision/
 ├── backend/                  # FastAPI Application Core
 │   ├── api/
@@ -180,31 +251,34 @@ argus-vision/
 │   │   │   ├── health.py     # GET /health (healthcheck endpoint)
 │   │   │   └── jobs.py       # GET /jobs/{jobId} (results retrieval)
 │   │   └── websocket/
-│   │       └── debate_stream.py # WS /ws/debate/{jobId} (WS event loop handler)
-│   ├── checkpoints/          # Model checkpoint directory (weights)
+│   │       └── debate_stream.py # WS /ws/debate/{jobId} (Redis pub/sub consumer)
+│   ├── checkpoints/          # Model weights directory
+│   │   ├── agent_a_best.pth  # EfficientNet-B4 weights
+│   │   ├── agent_b_best.pth  # ViT-B/16 weights
+│   │   ├── consensus_lgbm.pkl# Primary LightGBM consensus head
+│   │   └── consensus_scaler.json # StandardScaler parameters
 │   ├── core/
-│   │   ├── config.py         # BaseSettings configuration with pydantic-settings
-│   │   ├── exceptions.py     # Custom exceptions (ArgusError, JobNotFoundError, etc.)
-│   │   └── models.py         # Unified Pydantic models & WS Event schemas
+│   │   ├── config.py         # pydantic-settings config mapper
+│   │   ├── exceptions.py     # Custom error hierarchy
+│   │   └── models.py         # Pydantic schemas (JobResult, DebateEvent, etc.)
 │   ├── ml/
 │   │   ├── agents/
-│   │   │   ├── agent_a.py    # Agent A (EfficientNet-B4 timm loader)
-│   │   │   └── agent_b.py    # Agent B (ViT-B/16 timm loader)
+│   │   │   ├── agent_a.py    # CNN wrapper
+│   │   │   └── agent_b.py    # ViT wrapper
 │   │   ├── attention/
-│   │   │   ├── disagreement.py# Combined heatmap delta & contested region bbox
-│   │   │   ├── gradcam.py    # CNN Grad-CAM++ computation
-│   │   │   └── rollout.py    # ViT attention rollout computation
+│   │   │   ├── disagreement.py# Disagreement map & bbox mask extraction
+│   │   │   ├── gradcam.py    # Grad-CAM++ logic
+│   │   │   └── rollout.py    # Transformer Attention Rollout logic
 │   │   ├── consensus/
-│   │   │   └── classifier.py # 788-d input consensus MLP & Temp calibration
+│   │   │   └── classifier.py # Calibrated Fusion logic (StandardScaler -> LGBM/MLP)
 │   │   ├── debate/
-│   │   │   ├── argument_gen.py# Prompt composition & Groq LLM debate loop
-│   │   │   ├── encoder.py    # Sentence Transformer 384-d vector embeddings
-│   │   │   └── trigger.py    # JS divergence & Shannon entropy calculation
-│   │   └── pipeline.py       # End-to-end background job pipeline orchestrator
+│   │   │   ├── features.py   # The 23-dimensional vector extractor
+│   │   │   └── trigger.py    # JS Divergence & Shannon Entropy evaluation
+│   │   └── pipeline.py       # The End-to-End Orchestrator class
 │   ├── services/
-│   │   ├── image_service.py  # Image resize, normalisation, and base64 PNG renderers
-│   │   └── job_service.py    # Redis job store persistence and WS event publisher
-│   ├── main.py               # FastAPI entrypoint, lifespan and global middlewares
+│   │   ├── image_service.py  # Tensor preprocessing and Base64 heatmap rendering
+│   │   └── job_service.py    # Redis persistence and PubSub message dispatcher
+│   ├── main.py               # FastAPI entrypoint and lifespan definition
 │   ├── Dockerfile
 │   └── requirements.txt
 │
@@ -213,216 +287,102 @@ argus-vision/
 │   │   ├── app/
 │   │   │   ├── debate/
 │   │   │   │   └── [jobId]/
-│   │   │   │       └── page.tsx # Subscribes to websocket & renders debate
-│   │   │   ├── globals.css   # Main stylesheet
-│   │   │   ├── layout.tsx
-│   │   │   └── page.tsx      # Landing page with DropZone component
+│   │   │   │       └── page.tsx # WebSocket subscriber & dynamic debate viewer
+│   │   │   ├── globals.css   # Main stylesheet (Tailwind)
+│   │   │   ├── layout.tsx    # Root HTML layout
+│   │   │   └── page.tsx      # Landing page with DropZone file uploader
 │   │   ├── components/
 │   │   │   ├── debate/
-│   │   │   │   ├── AgentCard.tsx       # Renders agent confidence and heatmaps
-│   │   │   │   ├── ArgumentStream.tsx  # Handles streamed text with typewriter logic
+│   │   │   │   ├── AgentCard.tsx       # UI for agent predictions
 │   │   │   │   ├── ConsensusVerdict.tsx# Displays final consensus output
-│   │   │   │   ├── DisagreementMap.tsx # Displays visual disagreement map overlay
-│   │   │   │   ├── HeatmapCanvas.tsx   # Base64 heatmap and bbox canvas overlay
-│   │   │   │   └── TriggerIndicator.tsx# Shows JS divergence/entropies gauge
+│   │   │   │   ├── DisagreementMap.tsx # Visual disagreement map overlay
+│   │   │   │   ├── HeatmapCanvas.tsx   # Canvas overlays for base64 images & bbox
+│   │   │   │   └── TriggerIndicator.tsx# UI gauges for divergence & entropy
 │   │   │   ├── ui/
-│   │   │   │   ├── ClassBadge.tsx      # Colored badges for ISIC-8 categories
-│   │   │   │   ├── ConfidenceBar.tsx   # Progress bar helper
-│   │   │   │   └── LoadingOrbit.tsx    # Interactive orbit spinner
+│   │   │   │   └── ClassBadge.tsx      # Color-coded ISIC categories
 │   │   │   └── upload/
-│   │   │       ├── DropZone.tsx        # File drag-and-drop handler
-│   │   │       └── ImagePreview.tsx
-│   │   ├── hooks/
-│   │   ├── lib/
-│   │   └── types/
+│   │   │       └── DropZone.tsx        # File drag-and-drop
+│   │   ├── types/            # TypeScript interfaces mirroring core/models.py
 │   ├── Dockerfile
 │   ├── tailwind.config.ts
 │   └── package.json
 │
-├── ml_training/              # Training Notebooks and Calibration Scripts
-│   ├── 01_train_agent_a.ipynb   # EfficientNet-B4 training
-│   ├── 02_train_agent_b.ipynb   # ViT-B/16 training
-│   ├── 03_build_hard_subset.ipynb# Formulate difficult boundary classification datasets
-│   ├── 04_train_consensus.ipynb # Train the consensus classifier MLP and calibrate
-│   ├── 05_evaluation.ipynb      # Global evaluations, reliability, and ECE plots
-│   ├── config.py
-│   ├── dataset.py            # PyTorch datasets for training on ISIC
-│   ├── losses.py             # Custom losses
-│   └── requirements_training.txt
+├── ml_training/              # Research, Training & Calibration Notebooks
+│   ├── 01_train_agent_a.ipynb   # Train EfficientNet-B4
+│   ├── 02_train_agent_b.ipynb   # Train ViT-B/16
+│   ├── 03_build_hard_subset.ipynb# Create boundary datasets based on JS divergence
+│   ├── 04_train_consensus.ipynb # Train LightGBM/MLP on the 23-dim feature vector
+│   ├── 05_evaluation.ipynb      # Global calibration/ECE metrics plotting
+│   ├── dataset.py            # PyTorch dataloaders
+│   └── debate_text_utils.py  # Original source of the 23-dim feature extraction logic
 │
 ├── nginx/
-│   └── nginx.conf            # Proxy routing configuration
+│   └── nginx.conf            # Proxy routing configuration for port 80
 │
-└── docker-compose.yml        # Orchestrates Redis, Backend, Frontend, and Nginx
+└── docker-compose.yml        # Orchestrates the microservice cluster
 ```
-
----
-
-## 5. API Contracts & WebSocket Event Protocols
-
-The data schemas are maintained using Pydantic on the backend ([models.py](file:///c:/Users/ahmad/Desktop/argus-vision/backend/core/models.py)) and mirrored on the TypeScript frontend.
-
-### 5.1. REST Endpoints
-
-#### `POST /api/classify`
-*   **Request:** `multipart/form-data` with a `file` field holding the raw JPEG or PNG file.
-*   **Response:**
-    ```json
-    {
-      "job_id": "8bc5a0e0-47b2-4d2d-8068-07e15bf9ec2d",
-      "status": "queued",
-      "estimated_seconds": 10
-    }
-    ```
-
-#### `GET /api/jobs/{job_id}`
-*   **Response:** Full `JobResult` object structure:
-    ```json
-    {
-      "job_id": "8bc5a0e0-47b2-4d2d-8068-07e15bf9ec2d",
-      "status": "consensus_done",
-      "created_at": "2026-06-18T14:40:00Z",
-      "updated_at": "2026-06-18T14:40:10Z",
-      "agent_a": {
-        "agent_id": "A",
-        "result": {
-          "pred_class": "MEL",
-          "confidence": 0.72,
-          "probabilities": { "MEL": 0.72, "NV": 0.10, ... }
-        },
-        "heatmap_b64": "data:image/png;base64,..."
-      },
-      "agent_b": {
-        "agent_id": "B",
-        "result": {
-          "pred_class": "BKL",
-          "confidence": 0.61,
-          "probabilities": { "MEL": 0.05, "NV": 0.12, "BKL": 0.61, ... }
-        },
-        "heatmap_b64": "data:image/png;base64,..."
-      },
-      "trigger": {
-        "fired": true,
-        "js_divergence": 0.38,
-        "entropy_a": 0.95,
-        "entropy_b": 1.12,
-        "threshold_js": 0.25,
-        "threshold_entropy": 0.8
-      },
-      "attention": {
-        "heatmap_a_b64": "data:image/png;base64,...",
-        "heatmap_b_b64": "data:image/png;base64,...",
-        "disagreement_b64": "data:image/png;base64,...",
-        "bbox": { "x1": 42, "y1": 30, "x2": 150, "y2": 180 },
-        "region_stats_a": { "mean": 0.58, "std": 0.12, "max": 0.82 },
-        "region_stats_b": { "mean": 0.41, "std": 0.19, "max": 0.75 }
-      },
-      "debate": {
-        "argument_a": {
-          "agent_id": "A",
-          "argument": "The lesion displays a broadened pigment network...",
-          "embedding": [0.012, -0.054, ...],
-          "updated_probs": { "MEL": 0.81, "NV": 0.07, ... }
-        },
-        "argument_b": {
-          "agent_id": "B",
-          "argument": "Although there is a network, the borders are sharply demarcated...",
-          "embedding": [-0.023, 0.091, ...],
-          "updated_probs": { "MEL": 0.04, "NV": 0.10, "BKL": 0.68, ... }
-        }
-      },
-      "consensus": {
-        "pred_class": "MEL",
-        "confidence": 0.79,
-        "probabilities": { "MEL": 0.79, "NV": 0.05, ... },
-        "temperature": 1.15,
-        "ece": 0.042
-      },
-      "error": null
-    }
-    ```
-
----
-
-### 5.2. WebSocket Event Streams (`WS /ws/debate/{job_id}`)
-
-Clients receive a sequence of JSON messages categorized by `type` (Discriminated Union):
-
-1.  **`{"type": "ping"}`:** Emitted every 30s to prevent proxy timeouts.
-2.  **`{"type": "agents_running"}`:** Emitted when Agent A and B start classification.
-3.  **`{"type": "agents_done", "agent_a": {...}, "agent_b": {...}}`:** Emitted when both agents complete their initial forward pass (without heatmaps).
-4.  **`{"type": "trigger_evaluated", "result": {...}}`:** Emitted after evaluating the debate trigger conditions.
-5.  **`{"type": "attention_computed", "result": {...}}`:** Emitted after heatmaps, disagreement map, and bounding boxes are calculated. This also re-publishes `agents_done` with base64 heatmap strings.
-6.  **`{"type": "argument_token", "agent": "A"|"B", "token": "...", "round": 1|2}`:** Pushes single words/tokens with whitespace sequentially for typewriter rendering.
-7.  **`{"type": "argument_done", "agent": "A"|"B", "argument": "...", "round": 1|2}`:** Sent when an agent completes its full argument.
-8.  **`{"type": "consensus_done", "result": {...}}`:** Fired when the final calibrated consensus result is calculated.
-9.  **`{"type": "error", "message": "..."}`:** Emitted if any pipeline stage fails, moving the job status to `failed`.
 
 ---
 
 ## 6. Environment Configurations
 
-### 6.1. Backend Environment Settings (`backend/.env` / Docker Env)
+All primary configuration is injected via `.env` files or `docker-compose` environment mappings.
+
+### Backend (`backend/.env` or Docker env)
 
 | Variable | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `GROQ_API_KEY` | string | `""` | Groq API key for LLM arguments. If empty, offline fallbacks are used. |
 | `REDIS_URL` | string | `redis://redis:6379` | Redis server address for job queue and pub/sub. |
 | `MODEL_CHECKPOINT_DIR`| string | `./checkpoints` | Path to weights checkpoints. |
 | `AGENT_A_CHECKPOINT` | string | `agent_a_best.pth` | Agent A weight file. |
 | `AGENT_B_CHECKPOINT` | string | `agent_b_best.pth` | Agent B weight file. |
-| `CONSENSUS_CHECKPOINT`| string | `consensus_best.pth`| Consensus MLP weight file. |
-| `PRETRAINED_FALLBACK` | boolean| `True` | Fall back to ImageNet weights if checkpoints are missing. |
+| `CONSENSUS_CHECKPOINT`| string | `consensus_best.pth`| Consensus MLP weight file fallback. |
+| `CONSENSUS_SCALER` | string | `consensus_scaler.pkl` | StandardScaler joblib/JSON parameters. |
+| `PRETRAINED_FALLBACK` | boolean| `True` | Fall back to ImageNet weights if checkpoints are missing (prevents crashes when no weights exist). |
 | `DEBATE_JS_THRESHOLD` | float | `0.25` | JS divergence trigger threshold. |
 | `DEBATE_ENTROPY_THRESHOLD`| float | `0.8` | Shannon entropy trigger threshold. |
-| `GROQ_MODEL` | string | `llama-3.3-70b-versatile`| Groq model for debate arguments. |
 | `MAX_IMAGE_SIZE_MB` | integer| `10` | Maximum file size allowed in uploads. |
-| `ALLOWED_ORIGINS` | string | `http://localhost:3000,http://localhost` | Permitted CORS origins. |
+| `ALLOWED_ORIGINS` | string | `http://localhost:3000,http://localhost` | Permitted CORS origins for FastAPI. |
 
-### 6.2. Frontend Settings
+### Frontend Settings
 
-*   `NEXT_PUBLIC_API_URL`: Base URL for REST endpoints (typically `http://localhost/api` when routed through Nginx, or `http://localhost:8000` for direct dev backend).
-*   `NEXT_PUBLIC_WS_URL`: Base URL for WS endpoints (typically `ws://localhost/ws` via Nginx, or `ws://localhost:8000/ws` for direct dev backend).
+| Variable | Description |
+| :--- | :--- |
+| `NEXT_PUBLIC_API_URL` | Base URL for REST endpoints. Inside Docker, this points to `http://localhost/api` (via Nginx proxy). |
+| `NEXT_PUBLIC_WS_URL` | Base URL for WebSocket endpoints. Inside Docker, this points to `ws://localhost/ws`. |
 
 ---
 
-## 7. Running & Local Setup
+## 7. Running & Deployment
 
-### 7.1. Via Docker Compose (Recommended)
-Docker Compose spins up the entire stack (Redis, Backend, Frontend, and Nginx reverse proxy). 
+### 7.1. Docker Compose (Full Stack)
+The recommended way to boot the ecosystem:
+```bash
+docker compose up --build
+```
+*   The application binds to `localhost:80`.
+*   A `hf-cache` Docker volume persists pretrained backbone weights downloaded via `timm` during the first run to accelerate subsequent boots.
 
-1.  **Start Stack:**
-    ```bash
-    docker compose up --build
-    ```
-2.  **Access Page:** Open `http://localhost` in the browser.
-3.  **HuggingFace / model weights cache:** Pretrained backbones and Sentence-Transformers weights (~1GB) are downloaded during first run and cached in the docker volume `hf-cache` so subsequent startups are fast.
+### 7.2. Local Development Run
+If debugging specific microservices locally:
 
-### 7.2. Running Backend Locally for Development
-1.  **Prerequisites:** Python 3.10+, Redis running locally on `localhost:6379`.
-2.  **Install requirements:**
-    ```bash
-    cd backend
-    pip install -r requirements.txt
-    ```
-3.  **Setup Environment:**
-    ```bash
-    cp .env.example .env
-    # Edit .env and configure GROQ_API_KEY if desired
-    ```
-4.  **Run FastAPI:**
-    ```bash
-    uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-    ```
+**Backend:**
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+*(Requires a local Redis server running on port 6379).*
 
-### 7.3. Running Frontend Locally for Development
-1.  **Install dependencies:**
-    ```bash
-    cd frontend
-    npm install
-    ```
-2.  **Start Dev server:**
-    ```bash
-    npm run dev
-    ```
-    The frontend is accessible at `http://localhost:3000`, communicating directly with `http://localhost:8000` (or as configured in environment settings).
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+*(Runs on `localhost:3000` and needs `NEXT_PUBLIC_API_URL` pointing to the dev backend).*
+
+---
+
+### End of Document
+This `context.md` acts as the authoritative truth for Argus Vision. AI Agents modifying the code must abide strictly by the 23-dimensional feature contract, ensure WebSocket event compliance, and never inject legacy LLM logic back into the pipeline orchestrator.
