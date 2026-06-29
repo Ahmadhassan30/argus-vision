@@ -98,7 +98,7 @@ export default function DisagreementMap({
         <button
           type="button"
           onClick={() => setOverlay((v) => !v)}
-          aria-pressed={overlay}
+          aria-pressed={overlay ? "true" : "false"}
           className="rounded-full border border-hairline px-3 py-1 font-mono text-[10px] font-medium uppercase tracking-wider text-ink-soft transition-colors hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-faint"
         >
           {overlay ? "Show raw" : "Show overlay"}

@@ -136,11 +136,10 @@ export function getRisk(id: string): string {
   return meta ? RISK_COLORS[meta.risk] : COLORS.inkFaint;
 }
 
-/** Captions describing what each spatial-attention technique reveals. */
+/** Short captions describing what each spatial-attention tile reveals. */
 export const ATTENTION_CAPTIONS = {
-  a: "Grad-CAM++ — gradient-weighted activations highlight the local texture and edge evidence Agent A weighed most.",
-  b: "Attention Rollout — accumulated self-attention shows the global structure Agent B attended to across patches.",
-  disagreement:
-    "Disagreement Map — where the two agents looked at different things; the brighter the region, the sharper the conflict.",
-  source: "Source — the dermoscopic lesion, with the contested region boxed.",
+  a: "Local texture & edge evidence Agent A weighed most.",
+  b: "Global structure Agent B attended to across patches.",
+  disagreement: "Where the agents looked differently — brighter is sharper conflict.",
+  source: "The lesion, with the contested region boxed.",
 } as const;

@@ -49,7 +49,7 @@ export default function ConsensusVerdict({
   return (
     <section
       aria-label="Consensus diagnosis"
-      className="animate-rise-in overflow-hidden rounded-2xl border bg-surface p-7 shadow-glow-consensus"
+      className="animate-rise-in overflow-hidden rounded-2xl border bg-surface p-6 shadow-glow-consensus"
       style={{ borderColor: "rgba(5, 150, 105, 0.4)" }}
     >
       <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-consensus">
