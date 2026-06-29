@@ -53,9 +53,11 @@ services:
       args:
         NEXT_PUBLIC_API_URL: http://localhost/api
         NEXT_PUBLIC_WS_URL: ws://localhost/ws
+        NEXT_PUBLIC_DEBATE_EMBEDDER: transformers
     environment:
       NEXT_PUBLIC_API_URL: http://localhost/api
       NEXT_PUBLIC_WS_URL: ws://localhost/ws
+      NEXT_PUBLIC_DEBATE_EMBEDDER: transformers
     ports:
       - "3000:3000"
     depends_on:
