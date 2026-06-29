@@ -1,148 +1,107 @@
 "use client";
 
 /**
- * ArgumentStream renders one round of the adversarial debate as two side-by-side
- * monospace panels — Agent A on the left, Agent B on the right. Each panel shows
- * that agent's argument text. While an agent is actively streaming, its panel
- * displays the in-progress `streamingText` with a blinking cursor appended;
- * once an argument is complete it shows a subtle checkmark.
+ * ArgumentStream — the signature element. Reveals an agent's argument text
+ * character-by-character at a steady cinematic cadence using requestAnimationFrame,
+ * regardless of how chunkily the underlying tokens arrive. A blinking caret marks
+ * live cognition. Honours reduced-motion by showing the full text at once.
+ *
+ * The component reveals toward whatever `text` currently is, so as new tokens grow
+ * the target it keeps typing; if the text is replaced (e.g. fallback swap) it
+ * clamps gracefully.
  */
 
-import { motion } from "framer-motion";
-import clsx from "clsx";
-import { AGENT_A_COLOR, AGENT_B_COLOR } from "@/lib/constants";
+import { useEffect, useRef, useState } from "react";
 
-/** Props for {@link ArgumentStream}. */
-export interface ArgumentStreamProps {
-  /** Which debate round this stream represents. */
-  round: 1 | 2;
-  /** Agent A's full argument text (empty until it has produced one). */
-  argumentA: string;
-  /** Agent B's full argument text (empty until it has produced one). */
-  argumentB: string;
-  /** Which agent is currently streaming, or null if none. */
-  streamingAgent: "A" | "B" | null;
-  /** The partial text accumulated so far for the streaming agent. */
-  streamingText: string;
-}
+import { AGENTS, type AgentId } from "@/lib/constants";
 
-/** Resolved per-agent display state for one panel. */
-interface PanelState {
-  /** The text to render (either streaming partial or finished argument). */
+interface ArgumentStreamProps {
   text: string;
-  /** Whether this panel is the one currently streaming. */
-  isStreaming: boolean;
-  /** Whether this panel holds a completed, non-streaming argument. */
-  isComplete: boolean;
+  /** Drives caret colour; omit for the neutral consensus voice. */
+  agentId?: AgentId;
+  /** Show the caret even when fully revealed (request still in flight). */
+  active?: boolean;
+  /** Reveal speed in characters per second. */
+  speed?: number;
+  /** Render synthesis voice in italic serif. */
+  serif?: boolean;
+  className?: string;
 }
 
-/**
- * A single agent argument panel.
- *
- * @param props - The agent label, color, accent border class, and panel state.
- * @returns The rendered panel.
- */
-function AgentPanel({
-  label,
-  color,
-  borderClass,
-  state,
-}: {
-  label: string;
-  color: string;
-  borderClass: string;
-  state: PanelState;
-}): JSX.Element {
-  return (
-    <div
-      className={clsx(
-        "flex flex-1 flex-col gap-2 rounded-md border-l-4 bg-argus-black",
-        "border border-argus-border p-4",
-        borderClass
-      )}
-    >
-      <div className="flex items-center justify-between">
-        <span
-          className="font-display text-xs font-semibold uppercase tracking-wide"
-          style={{ color }}
-        >
-          {label}
-        </span>
-        {state.isComplete && (
-          <span
-            className="font-mono text-xs text-argus-consensus"
-            title="Argument complete"
-            aria-label="Argument complete"
-          >
-            &#10003;
-          </span>
-        )}
-      </div>
-      <p className="whitespace-pre-wrap break-words font-mono text-sm leading-relaxed text-white">
-        {state.text}
-        {state.isStreaming && (
-          <span className="blink-cursor text-argus-muted" aria-hidden="true">
-            &#9608;
-          </span>
-        )}
-      </p>
-    </div>
-  );
-}
-
-/**
- * Renders one round of the debate as two monospace argument panels.
- *
- * @param props - Round number, both arguments, and the active stream state.
- * @returns The rendered round.
- */
 export default function ArgumentStream({
-  round,
-  argumentA,
-  argumentB,
-  streamingAgent,
-  streamingText,
-}: ArgumentStreamProps): JSX.Element {
-  const header =
-    round === 1
-      ? "ROUND 1 — INITIAL ARGUMENTS"
-      : "ROUND 2 — REBUTTALS";
+  text,
+  agentId,
+  active = false,
+  speed = 48,
+  serif = false,
+  className = "",
+}: ArgumentStreamProps): React.JSX.Element {
+  const [shown, setShown] = useState(0);
+  const rafRef = useRef<number | null>(null);
+  const lastRef = useRef<number>(0);
+  const accRef = useRef<number>(0);
 
-  const stateA: PanelState = {
-    text: streamingAgent === "A" ? streamingText : argumentA,
-    isStreaming: streamingAgent === "A",
-    isComplete: streamingAgent !== "A" && argumentA.length > 0,
-  };
-  const stateB: PanelState = {
-    text: streamingAgent === "B" ? streamingText : argumentB,
-    isStreaming: streamingAgent === "B",
-    isComplete: streamingAgent !== "B" && argumentB.length > 0,
-  };
+  const reduced =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  useEffect(() => {
+    if (reduced) {
+      setShown(text.length);
+      return;
+    }
+
+    // Clamp if the target shrank (text replaced).
+    setShown((s) => Math.min(s, text.length));
+
+    const tick = (now: number): void => {
+      if (lastRef.current === 0) lastRef.current = now;
+      const dt = (now - lastRef.current) / 1000;
+      lastRef.current = now;
+      accRef.current += dt * speed;
+
+      setShown((prev) => {
+        if (prev >= text.length) return prev;
+        const add = Math.floor(accRef.current);
+        if (add >= 1) {
+          accRef.current -= add;
+          return Math.min(prev + add, text.length);
+        }
+        return prev;
+      });
+
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      lastRef.current = 0;
+    };
+  }, [text, speed, reduced]);
+
+  const visible = text.slice(0, shown);
+  const caretVisible = active || shown < text.length;
+  const caretColor = agentId ? AGENTS[agentId].color : "var(--accent-consensus)";
 
   return (
-    <motion.div
-      className="flex flex-col gap-3"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
+    <span
+      className={[
+        serif ? "font-display italic" : "",
+        "whitespace-pre-wrap",
+        className,
+      ].join(" ")}
     >
-      <h4 className="font-mono text-xs uppercase tracking-[0.2em] text-argus-muted">
-        {header}
-      </h4>
-      <div className="flex flex-col gap-3 md:flex-row">
-        <AgentPanel
-          label="Agent A"
-          color={AGENT_A_COLOR}
-          borderClass="border-l-argus-agent-a"
-          state={stateA}
-        />
-        <AgentPanel
-          label="Agent B"
-          color={AGENT_B_COLOR}
-          borderClass="border-l-argus-agent-b"
-          state={stateB}
-        />
-      </div>
-    </motion.div>
+      {visible}
+      {caretVisible && (
+        <span
+          aria-hidden
+          className="ml-px inline-block animate-blink"
+          style={{ color: caretColor }}
+        >
+          ▋
+        </span>
+      )}
+    </span>
   );
 }

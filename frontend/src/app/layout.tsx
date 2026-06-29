@@ -1,58 +1,58 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, JetBrains_Mono, DM_Serif_Display } from "next/font/google";
+import { Inter, JetBrains_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 
 /**
- * Display typeface (Space Grotesk) exposed as the `--font-display` CSS
- * variable and consumed by the Tailwind `font-display` family.
+ * Body / UI typeface (Inter) — clean and clinical. Exposed as `--font-body`
+ * and wired to the Tailwind `font-body` family.
  */
-const spaceGrotesk = Space_Grotesk({
+const inter = Inter({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-display",
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-body",
 });
 
 /**
- * Monospace typeface (JetBrains Mono) exposed as the `--font-mono` CSS
- * variable and consumed by the Tailwind `font-mono` family.
+ * Data / numeric typeface (JetBrains Mono) — probabilities, gauges, hex codes.
+ * Exposed as `--font-mono`.
  */
 const jetBrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   display: "swap",
+  weight: ["400", "500", "600"],
   variable: "--font-mono",
 });
 
 /**
- * Serif display typeface (DM Serif Display) exposed as the `--font-serif`
- * CSS variable and consumed by the Tailwind `font-serif` family.
+ * Display typeface (Instrument Serif) — section headers and agent names. Used
+ * with restraint for weighted, grand-rounds elegance. Exposed as `--font-display`.
  */
-const dmSerifDisplay = DM_Serif_Display({
+const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
   display: "swap",
   weight: "400",
-  variable: "--font-serif",
+  style: ["normal", "italic"],
+  variable: "--font-display",
 });
 
 /** Page metadata for the Argus Vision application. */
 export const metadata: Metadata = {
-  // Base URL used to resolve relative Open Graph / Twitter image URLs to
-  // absolute ones. The app is served behind nginx at the site root.
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost"),
-  title: "Argus Vision",
+  title: "Argus Vision — Live Diagnostic Debate",
   description:
-    "Adversarial multi-agent visual debate for uncertainty-aware medical image classification.",
+    "Watch two AI agents reason, disagree, and argue their way to a calibrated diagnosis on a dermoscopic skin-lesion image.",
   openGraph: {
-    title: "Argus Vision",
+    title: "Argus Vision — Live Diagnostic Debate",
     description:
-      "Adversarial multi-agent visual debate for uncertainty-aware medical image classification.",
+      "Watch two AI agents reason, disagree, and argue their way to a calibrated diagnosis.",
     images: [{ url: "/og.png" }],
   },
 };
 
 /**
- * Root layout for the application. Wires the three Google fonts as CSS
- * variables on the `<html>` element and applies the global dark theme to the
- * `<body>`.
+ * Root layout. Wires the three typefaces as CSS variables on `<html>` and
+ * applies the bright "Luminous Clinical Theatre" base to `<body>`.
  *
  * @param props.children - The routed page content to render.
  */
@@ -65,12 +65,12 @@ export default function RootLayout({
     <html
       lang="en"
       className={[
-        spaceGrotesk.variable,
+        inter.variable,
         jetBrainsMono.variable,
-        dmSerifDisplay.variable,
+        instrumentSerif.variable,
       ].join(" ")}
     >
-      <body className="bg-argus-black text-white min-h-screen antialiased">
+      <body className="min-h-screen bg-canvas font-body text-ink antialiased">
         {children}
       </body>
     </html>

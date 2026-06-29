@@ -76,7 +76,7 @@ function rejectionMessage(rejections: FileRejection[]): string | null {
  */
 export default function DropZone({
   onFileSelected,
-}: DropZoneProps): JSX.Element {
+}: DropZoneProps): React.JSX.Element {
   const [acceptedFile, setAcceptedFile] = useState<File | null>(null);
   const [dimensions, setDimensions] = useState<ImageDimensions | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -129,43 +129,39 @@ export default function DropZone({
 
   return (
     <div className="flex w-full flex-col gap-3">
-      {/*
-        react-dropzone's getRootProps() returns DOM-typed handlers
-        (onAnimationStart, onDrag*) that conflict with framer-motion's redefined
-        props, so the root must be a plain <div>. The drag-active pulse uses the
-        Tailwind `pulse-border` keyframe and a CSS scale instead of motion.
-      */}
+      {/* Drag-active state lifts the border to the Agent A accent with a soft
+          glow and a subtle scale — pure CSS, no animation library. */}
       <div
         {...getRootProps()}
         className={clsx(
           "flex cursor-pointer flex-col items-center justify-center gap-2",
-          "rounded-xl border-2 border-dashed bg-argus-surface px-6 py-12 text-center",
+          "rounded-2xl border-2 border-dashed bg-surface px-6 py-14 text-center",
           "transition duration-200 will-change-transform",
           isDragActive
-            ? "scale-[1.01] animate-pulse-border"
-            : "border-argus-border hover:border-argus-agent-a"
+            ? "scale-[1.01] border-agent-a shadow-glow-a"
+            : "border-hairline hover:border-agent-a hover:bg-surface-alt/40"
         )}
       >
         <input {...getInputProps()} />
-        <p className="font-display text-sm text-white">
+        <p className="font-display text-lg text-ink">
           {isDragActive
             ? "Drop the image to analyze"
-            : "Drag & drop a dermoscopic image here"}
+            : "Drag & drop a dermoscopic image"}
         </p>
-        <p className="font-mono text-xs text-argus-muted">
+        <p className="font-mono text-xs text-ink-faint">
           JPG or PNG · up to 10 MB · click to browse
         </p>
       </div>
 
       {error && (
-        <p className="font-mono text-xs text-argus-danger" role="alert">
+        <p className="font-mono text-xs text-danger" role="alert">
           {error}
         </p>
       )}
 
       {acceptedFile && !error && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs text-argus-muted">
-          <span className="truncate text-white">{acceptedFile.name}</span>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs text-ink-faint">
+          <span className="truncate text-ink-soft">{acceptedFile.name}</span>
           <span>{formatBytes(acceptedFile.size)}</span>
           {dimensions && (
             <span>
