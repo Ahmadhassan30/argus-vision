@@ -205,6 +205,7 @@ top of NB01/02 echoes the active `config.py` settings and any resume files.
    lesion-grouped split is genuinely harder; that's correct, not a regression. (>90% bal-acc = red flag.)
 2. **Agent A — decoupled.** NB01 with `TRAINING_MODE="decoupled"`, same resolution. Compare per-class recall
    / PR-AUC on **DF/VASC/AK/SCC** against step 1 — this is the test of whether decoupled training earns its keep.
+   *Decision gate: if VASC per-class recall is still below 0.30 after the decoupled run, do not proceed to Agent B — apply β=0.9999 for Stage B only and retrain Agent A first.*
 3. **(Optional) logit adjustment.** `USE_LOGIT_ADJUSTMENT=True` on top of whichever mode won steps 1–2.
 4. **(Only if 1–3 don't already clearly win, and GPU budget allows) resolution.** Re-run the best config at
    `config.IMAGE_SIZE=320` (320 before 380 — cheaper, test first). Note: ViT-B/16 (Agent B) is fixed at 224,
