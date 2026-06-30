@@ -18,11 +18,15 @@ services:
     build: ./backend
     ports:
       - "8000:8000"
+    # Dev convenience: hot-reload on source edits. The shipped image CMD has NO --reload
+    # (production-clean); this override re-enables it only for local `docker compose up`.
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     volumes:
       - ./backend:/app
       # Persist downloaded model weights (HuggingFace / timm / torch hub) across
-      # container restarts so the first-run download happens only once.
-      - hf-cache:/root/.cache
+      # container restarts so the first-run download happens only once. Mounted under the
+      # non-root user's home (see backend/Dockerfile) so the container can write the cache.
+      - hf-cache:/home/argus/.cache
     # backend/.env is OPTIONAL: it is only needed for local (non-Docker) runs or
     # to override defaults. A missing file must not block `docker compose up`.
     env_file:

@@ -10,11 +10,10 @@ import os
 
 from fastapi import APIRouter, Request
 
+from core.config import get_settings
 from core.models import JobResult
 
 router = APIRouter()
-
-TEMP_IMAGE_DIR: str = "/tmp/argus"
 
 
 @router.get("/jobs/{job_id}", response_model=JobResult)
@@ -79,7 +78,7 @@ async def delete_job(request: Request, job_id: str) -> dict:
     job_service = request.app.state.job_service
     await job_service.delete_job(job_id)
 
-    image_path: str = os.path.join(TEMP_IMAGE_DIR, f"{job_id}.jpg")
+    image_path: str = os.path.join(get_settings().TEMP_IMAGE_DIR, f"{job_id}.jpg")
     if os.path.exists(image_path):
         os.remove(image_path)
 

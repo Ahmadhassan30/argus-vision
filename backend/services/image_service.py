@@ -22,16 +22,24 @@ from PIL import Image
 
 #: Target square input size (pixels) for both models.
 IMAGE_SIZE = 224
+#: Shorter-side resize applied BEFORE the centre-crop. MUST be 256 (not 224) so the
+#: inference pipeline is identical to the training-time evaluation transform
+#: (ml_training/transforms.get_eval_transform): Resize(256) -> CenterCrop(224).
+#: Resizing straight to 224 cropped away the margin of context the models were
+#: trained on, causing a silent train/inference distribution shift.
+RESIZE_SIZE = 256
 #: ImageNet channel means used for normalisation.
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 #: ImageNet channel standard deviations used for normalisation.
 IMAGENET_STD = [0.229, 0.224, 0.225]
 
 #: Reusable preprocessing transform: resize, centre-crop, tensorise, normalise.
-#: Must match the training pipeline exactly (Resize shorter edge → CenterCrop).
+#: Mirrors ml_training/transforms.get_eval_transform exactly (cross-package: the
+#: backend Docker image cannot import ml_training, so the definition is duplicated
+#: but kept byte-for-byte equivalent): Resize(256) -> CenterCrop(224).
 _TRANSFORM = T.Compose(
     [
-        T.Resize(IMAGE_SIZE),
+        T.Resize(RESIZE_SIZE),
         T.CenterCrop(IMAGE_SIZE),
         T.ToTensor(),
         T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),

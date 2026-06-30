@@ -36,58 +36,27 @@ from config import (
     ISIC_CLASSES,
     NUM_CLASSES,
 )
+from weighting import effective_number_weights
 
 # Case-insensitive lookup from class name to contract index.
 _CLASS_TO_IDX: dict[str, int] = {name.upper(): idx for idx, name in enumerate(ISIC_CLASSES)}
 
 
+# Transforms are now defined canonically in transforms.py (single source of truth).
+# These thin wrappers preserve the historical dataset.py API while fixing the old
+# RandomResizedCrop scale divergence (this module used 0.8; the notebooks used 0.7)
+# — both now resolve to transforms.RANDOM_RESIZED_CROP_SCALE = (0.7, 1.0).
+from transforms import get_train_transform, get_eval_transform
+
+
 def get_train_transforms() -> transforms.Compose:
-    """Build the training-time augmentation pipeline.
-
-    The pipeline resizes the image, takes a randomized crop and applies a set
-    of photometric and geometric augmentations appropriate for dermoscopy
-    imagery (which has no canonical orientation), followed by ImageNet
-    normalization and a light random-erasing regularizer.
-
-    Returns:
-        A ``torchvision.transforms.Compose`` producing a normalized
-        ``torch.Tensor`` of shape ``(3, IMAGE_SIZE, IMAGE_SIZE)``.
-    """
-    return transforms.Compose(
-        [
-            transforms.Resize(256),
-            transforms.RandomResizedCrop(IMAGE_SIZE, scale=(0.8, 1.0)),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomVerticalFlip(),
-            transforms.RandomRotation(30),
-            transforms.ColorJitter(
-                brightness=0.2,
-                contrast=0.2,
-                saturation=0.2,
-                hue=0.05,
-            ),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
-            transforms.RandomErasing(p=0.1),
-        ]
-    )
+    """Training augmentation pipeline (delegates to transforms.get_train_transform)."""
+    return get_train_transform()
 
 
 def get_val_transforms() -> transforms.Compose:
-    """Build the deterministic validation/inference transform pipeline.
-
-    Returns:
-        A ``torchvision.transforms.Compose`` producing a normalized
-        ``torch.Tensor`` of shape ``(3, IMAGE_SIZE, IMAGE_SIZE)``.
-    """
-    return transforms.Compose(
-        [
-            transforms.Resize(256),
-            transforms.CenterCrop(IMAGE_SIZE),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
-        ]
-    )
+    """Deterministic eval/inference pipeline (delegates to transforms.get_eval_transform)."""
+    return get_eval_transform()
 
 
 # Module-level instantiations kept for convenience / backward compatibility.
@@ -284,46 +253,37 @@ class ISICDataset(Dataset):
         return counts
 
     def compute_class_weights(self) -> torch.Tensor:
-        """Compute inverse-square-root frequency class weights.
+        """Effective-number-of-samples class weights (Cui et al.), mean-normalized.
 
-        Weights are ``1 / sqrt(count)`` per class, normalized so their mean is
-        ``1.0``. Classes that are absent from the split receive a weight of
-        zero (their inverse frequency is undefined). The result is suitable as
-        the ``alpha`` argument of :class:`losses.FocalLoss` or the ``weight``
-        argument of ``nn.CrossEntropyLoss``.
+        Delegates to :func:`weighting.effective_number_weights` — the single source
+        of truth shared with notebooks 01/02 — using ``config.EFFECTIVE_NUMBER_BETA``.
+        Replaces the former ``1 / sqrt(count)`` weighting. The SAME weighting is used
+        by :meth:`make_weighted_sampler`, so the sampler and the FocalLoss ``alpha``
+        can never drift apart. Suitable as the ``alpha`` of :class:`losses.FocalLoss`.
 
         Returns:
             A ``torch.FloatTensor`` of shape ``(NUM_CLASSES,)``.
         """
-        counts = self._class_counts()
-        weights = torch.zeros(NUM_CLASSES, dtype=torch.float64)
-        present = counts > 0
-        weights[present] = 1.0 / torch.sqrt(counts[present])
-
-        mean_present = weights[present].mean() if present.any() else torch.tensor(1.0)
-        if mean_present > 0:
-            weights = weights / mean_present
-        return weights.to(dtype=torch.float32)
+        counts = [float(c) for c in self._class_counts().tolist()]
+        weights = effective_number_weights(counts)
+        return torch.tensor(list(weights), dtype=torch.float32)
 
     def make_weighted_sampler(self) -> WeightedRandomSampler:
         """Create a :class:`WeightedRandomSampler` for class-balanced sampling.
 
-        Each sample is assigned a weight inversely proportional to its class
-        frequency, so that rare classes are oversampled during training to the
-        same expected per-class rate.
+        Each sample's weight is its class's effective-number weight (the SAME array
+        returned by :meth:`compute_class_weights`), so the sampler and the loss use
+        one consistent weighting.
 
         Returns:
             A ``WeightedRandomSampler`` with ``num_samples == len(self)`` and
             replacement enabled.
         """
-        counts = self._class_counts()
-        # Per-class sampling weight: inverse frequency (guard against div-by-zero).
-        per_class_weight = torch.zeros(NUM_CLASSES, dtype=torch.float64)
-        present = counts > 0
-        per_class_weight[present] = 1.0 / counts[present]
+        counts = [float(c) for c in self._class_counts().tolist()]
+        per_class_weight = list(effective_number_weights(counts))
 
         sample_weights = torch.tensor(
-            [per_class_weight[label].item() for label in self.labels],
+            [float(per_class_weight[label]) for label in self.labels],
             dtype=torch.float64,
         )
         return WeightedRandomSampler(

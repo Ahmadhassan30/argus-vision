@@ -9,6 +9,8 @@ from datetime import datetime
 
 from fastapi import APIRouter, Request
 
+from core.config import get_settings
+
 router = APIRouter()
 
 
@@ -43,7 +45,7 @@ async def health(request: Request) -> dict:
 
     return {
         "status": "ok",
-        "version": "1.0.0",
+        "version": get_settings().APP_VERSION,
         "model_loaded": model_loaded,
         "redis_connected": redis_connected,
         "timestamp": datetime.utcnow().isoformat(),

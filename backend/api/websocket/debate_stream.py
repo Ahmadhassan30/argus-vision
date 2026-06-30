@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from core.config import get_settings
 from core.models import JobResult
 from services.job_service import JobNotFoundError, JobService
 
@@ -37,8 +38,13 @@ logger = logging.getLogger("argus.websocket.debate")
 
 router = APIRouter()
 
-# Interval, in seconds, between keepalive ping frames sent to the client.
+# Fallback interval, in seconds, between keepalive ping frames sent to the
+# client; used only if the configured WS_KEEPALIVE_SECONDS is unavailable.
 KEEPALIVE_INTERVAL_SECONDS: float = 30.0
+
+# Fallback poll timeout, in seconds, for each Redis pub/sub fetch; used only if
+# the configured WS_PUBSUB_POLL_SECONDS is unavailable.
+PUBSUB_POLL_SECONDS: float = 1.0
 
 # WebSocket close code used when the requested job cannot be found.
 WS_CLOSE_JOB_NOT_FOUND: int = 4004
@@ -73,10 +79,14 @@ async def _relay_messages(
         websocket: The accepted client WebSocket connection.
         pubsub: A Redis pub/sub object already subscribed to the job channel.
     """
+    # Poll timeout for each pub/sub fetch; configurable, defaults to 1s.
+    poll_timeout: float = getattr(
+        get_settings(), "WS_PUBSUB_POLL_SECONDS", PUBSUB_POLL_SECONDS
+    )
     while True:
         message: dict[str, Any] | None = await pubsub.get_message(
             ignore_subscribe_messages=True,
-            timeout=1.0,
+            timeout=poll_timeout,
         )
         if message is None:
             # No message within the timeout window; yield to the event loop and
@@ -100,8 +110,12 @@ async def _keepalive(websocket: WebSocket) -> None:
     Args:
         websocket: The accepted client WebSocket connection.
     """
+    # Keepalive interval; configurable, defaults to the module fallback (30s).
+    interval: float = getattr(
+        get_settings(), "WS_KEEPALIVE_SECONDS", KEEPALIVE_INTERVAL_SECONDS
+    )
     while True:
-        await asyncio.sleep(KEEPALIVE_INTERVAL_SECONDS)
+        await asyncio.sleep(interval)
         await websocket.send_json({"type": "ping"})
 
 
@@ -128,6 +142,13 @@ async def debate_stream(websocket: WebSocket, job_id: str) -> None:
     except JobNotFoundError:
         logger.info("Rejecting debate stream for unknown job %s", job_id)
         await websocket.close(code=WS_CLOSE_JOB_NOT_FOUND)
+        return
+    except Exception:
+        # A backend failure (e.g. Redis outage) while looking up the job is not
+        # a "not found" condition: close with 1011 (internal error) so the
+        # client sees a clean, well-defined close instead of an abnormal one.
+        logger.exception("Failed to look up debate stream for job %s", job_id)
+        await websocket.close(code=1011)
         return
 
     # Replay the current state for late subscribers.

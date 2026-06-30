@@ -104,8 +104,14 @@ class AgentB:
                     len(load_result.unexpected_keys),
                     load_result.unexpected_keys,
                 )
+            # A clean fine-tuned checkpoint must match the architecture exactly; a
+            # non-empty missing/unexpected list means a silent train/serve model mismatch.
+            assert not load_result.missing_keys and not load_result.unexpected_keys, (
+                f"Agent B checkpoint key mismatch — missing={load_result.missing_keys}, "
+                f"unexpected={load_result.unexpected_keys}. Refusing to serve a mismatched model."
+            )
         elif pretrained_fallback:
-            logger.warning(
+            logger.error(
                 "Agent B: no checkpoint found at '%s'. Falling back to an "
                 "ImageNet-pretrained ViT-B/16 backbone with a "
                 "randomly-initialized 8-class head. Predictions are NOT "

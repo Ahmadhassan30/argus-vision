@@ -18,6 +18,9 @@ from datetime import datetime
 from typing import Any
 
 from redis import asyncio as aioredis
+from redis.backoff import ExponentialBackoff
+from redis.exceptions import ConnectionError, TimeoutError
+from redis.retry import Retry
 
 from core.config import get_settings
 from core.exceptions import JobNotFoundError
@@ -73,7 +76,16 @@ class JobService:
             ``decode_responses=True`` so values round-trip as ``str``.
         """
         if self._client is None:
-            self._client = aioredis.from_url(self._redis_url, decode_responses=True)
+            settings = get_settings()
+            self._client = aioredis.from_url(
+                self._redis_url,
+                decode_responses=True,
+                socket_connect_timeout=settings.REDIS_SOCKET_TIMEOUT_SECONDS,
+                socket_timeout=settings.REDIS_SOCKET_TIMEOUT_SECONDS,
+                health_check_interval=30,
+                retry=Retry(ExponentialBackoff(), settings.REDIS_RETRY_ATTEMPTS),
+                retry_on_error=[ConnectionError, TimeoutError],
+            )
         return self._client
 
     @staticmethod
@@ -130,15 +142,16 @@ class JobService:
             consensus=None,
             error=None,
         )
+        ttl = get_settings().JOB_TTL_SECONDS
         await self.client.set(
             self._job_key(job_id),
             job.model_dump_json(),
-            ex=JOB_TTL_SECONDS,
+            ex=ttl,
         )
         await self.client.set(
             self._img_key(job_id),
             image_path,
-            ex=JOB_TTL_SECONDS,
+            ex=ttl,
         )
         return job
 
@@ -219,13 +232,14 @@ class JobService:
 
         job.updated_at = datetime.utcnow()
 
+        ttl = get_settings().JOB_TTL_SECONDS
         await self.client.set(
             self._job_key(job_id),
             job.model_dump_json(),
-            ex=JOB_TTL_SECONDS,
+            ex=ttl,
         )
         # Refresh the parallel image-path TTL so it expires in lockstep.
-        await self.client.expire(self._img_key(job_id), JOB_TTL_SECONDS)
+        await self.client.expire(self._img_key(job_id), ttl)
         return job
 
     @staticmethod

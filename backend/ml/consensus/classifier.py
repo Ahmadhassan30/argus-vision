@@ -179,8 +179,14 @@ class ConsensusClassifier(nn.Module):
                     len(load_result.unexpected_keys),
                     load_result.unexpected_keys,
                 )
+            # The 23->128->64->8 MLP + temperature must match the checkpoint exactly; a
+            # non-empty missing/unexpected list means a silent train/serve mismatch.
+            assert not load_result.missing_keys and not load_result.unexpected_keys, (
+                f"ConsensusClassifier checkpoint key mismatch — missing={load_result.missing_keys}, "
+                f"unexpected={load_result.unexpected_keys}. Refusing to serve a mismatched fusion head."
+            )
         else:
-            logger.warning(
+            logger.error(
                 "ConsensusClassifier: no checkpoint at '%s'. The fusion head is "
                 "randomly initialised and UNTRAINED; predictions are unreliable.",
                 checkpoint_path,

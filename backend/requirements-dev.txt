@@ -1,0 +1,8 @@
+# Development / test-only dependencies for the Argus Vision backend.
+#
+# The runtime dependencies (torch, numpy, scipy, fastapi, Pillow, redis, ...)
+# come from requirements.txt — install that first. The test suite imports the
+# real backend modules, so it needs the full runtime stack in addition to these.
+# Do NOT move pytest into requirements.txt; it must not ship in the runtime image.
+pytest==8.2.0
+httpx==0.27.0

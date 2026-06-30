@@ -63,6 +63,37 @@ class Settings(BaseSettings):
     MAX_IMAGE_SIZE_MB: int = 10
     """Maximum accepted upload size for an image, in megabytes."""
 
+    # --- Server / runtime tunables (Phase 9: hoisted from inline literals) ---
+    HOST: str = "0.0.0.0"
+    """Bind address for the uvicorn server."""
+
+    PORT: int = 8000
+    """Listen port for the uvicorn server."""
+
+    APP_VERSION: str = "1.0.0"
+    """API version surfaced by the app and the /health response."""
+
+    ESTIMATED_SECONDS: int = 10
+    """`estimated_seconds` hint returned by POST /classify (tunable; shape unchanged)."""
+
+    TEMP_IMAGE_DIR: str = "/tmp/argus"
+    """Directory where uploaded images are written (single source for classify + jobs)."""
+
+    JOB_TTL_SECONDS: int = 3600
+    """TTL applied to a job's Redis keys."""
+
+    WS_KEEPALIVE_SECONDS: float = 30.0
+    """Interval between WebSocket ``{"type": "ping"}`` keepalive frames."""
+
+    WS_PUBSUB_POLL_SECONDS: float = 1.0
+    """Poll timeout for the Redis pub/sub relay loop."""
+
+    REDIS_SOCKET_TIMEOUT_SECONDS: float = 2.0
+    """Socket connect/read timeout for the Redis client (fail fast, never hang)."""
+
+    REDIS_RETRY_ATTEMPTS: int = 3
+    """Number of native redis-py retry attempts (exponential backoff) for transient errors."""
+
     # --- CORS ---------------------------------------------------------------
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost"
     """Comma-separated list of origins permitted by CORS."""
@@ -77,11 +108,16 @@ class Settings(BaseSettings):
         Returns:
             A list of non-empty, whitespace-trimmed origin strings.
         """
-        return [
+        origins = [
             origin.strip()
             for origin in self.ALLOWED_ORIGINS.split(",")
             if origin.strip()
         ]
+        # Security: never assemble wildcard-with-credentials CORS. A lone "*" together
+        # with allow_credentials=True makes Starlette echo back ANY caller's Origin,
+        # allowing credentialed cross-origin requests from any site. Drop it; configure
+        # explicit origins instead.
+        return [origin for origin in origins if origin != "*"]
 
 
 @lru_cache

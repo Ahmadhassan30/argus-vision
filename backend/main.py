@@ -113,7 +113,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     title="Argus Vision API",
-    version="1.0.0",
+    version=get_settings().APP_VERSION,
     description=(
         "Adversarial multi-agent visual debate for uncertainty-aware medical "
         "image classification."
@@ -186,8 +186,10 @@ async def unhandled_exception_handler(
 
     :param request: The request that triggered the error.
     :param exc: The unhandled exception.
-    :return: JSON body ``{"error": "InternalServerError", "detail": str(exc)}``
-        with HTTP status 500.
+    :return: JSON body
+        ``{"error": "InternalServerError", "detail": "Internal server error."}``
+        with HTTP status 500. The full exception is logged with ``exc_info`` but
+        deliberately withheld from the response to avoid information disclosure.
     """
     logger.error(
         "Unhandled exception on %s %s: %s",
@@ -198,7 +200,7 @@ async def unhandled_exception_handler(
     )
     return JSONResponse(
         status_code=500,
-        content={"error": "InternalServerError", "detail": str(exc)},
+        content={"error": "InternalServerError", "detail": "Internal server error."},
     )
 
 
@@ -235,4 +237,5 @@ app.include_router(debate_stream.router)
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    _run_settings = get_settings()
+    uvicorn.run("main:app", host=_run_settings.HOST, port=_run_settings.PORT)

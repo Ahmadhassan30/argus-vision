@@ -125,6 +125,7 @@ class DebatePipeline:
         """
         try:
             # --- Stage 1: agents start -------------------------------------
+            logger.info("job %s -> %s", job_id, "agents_running")
             await job_service.update_and_publish(
                 job_id,
                 {"type": "agents_running"},
@@ -144,6 +145,7 @@ class DebatePipeline:
                 agent_id=self.agent_b.agent_id, result=result_b, heatmap_b64=None
             )
 
+            logger.info("job %s -> %s", job_id, "agents_done")
             await job_service.update_and_publish(
                 job_id,
                 {
@@ -162,6 +164,7 @@ class DebatePipeline:
                 result_a.probabilities,
                 result_b.probabilities,
             )
+            logger.info("job %s -> %s", job_id, "trigger_evaluated")
             await job_service.update_and_publish(
                 job_id,
                 {"type": "trigger_evaluated", "result": trigger.model_dump()},
@@ -196,6 +199,7 @@ class DebatePipeline:
                 heatmap_b,
             )
 
+            logger.info("job %s -> %s", job_id, "consensus_done")
             await job_service.update_and_publish(
                 job_id,
                 {"type": "consensus_done", "result": consensus.model_dump()},
@@ -220,6 +224,19 @@ class DebatePipeline:
                     job_id,
                     publish_exc,
                     exc_info=True,
+                )
+        finally:
+            # Best-effort cleanup of the uploaded temp image so they don't
+            # accumulate. The WS snapshot is served from Redis, not this file.
+            try:
+                if os.path.exists(image_path):
+                    os.remove(image_path)
+            except Exception as cleanup_exc:  # noqa: BLE001 - cleanup is best-effort.
+                logger.warning(
+                    "Failed to remove temp image '%s' for job '%s': %s",
+                    image_path,
+                    job_id,
+                    cleanup_exc,
                 )
 
     def _evaluate_trigger(
@@ -322,8 +339,10 @@ class DebatePipeline:
         if orig_w <= 0 or orig_h <= 0:
             return bbox
 
-        target_size = 256.0
-        crop_size = 224.0
+        # Bound to the preprocessing transform (Resize -> CenterCrop) so the bbox
+        # projection can never drift from how the image was actually cropped.
+        target_size = float(image_service.RESIZE_SIZE)
+        crop_size = float(image_service.IMAGE_SIZE)
         scale = target_size / float(min(orig_w, orig_h))
         resized_w = float(orig_w) * scale
         resized_h = float(orig_h) * scale
