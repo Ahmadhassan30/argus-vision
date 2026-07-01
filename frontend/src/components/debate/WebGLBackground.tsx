@@ -19,7 +19,7 @@ export default function WebGLBackground({ mode }: WebGLBackgroundProps): React.J
   const paramsRef = useRef({
     colorBg: "#080808",
     colorLine: "#000075", // Deep clinical blue strands
-    colorSignal: "#a80000", // Dark red signal color
+    colorSignal: "#f50529", // Vibrant red signal color
     useColor2: false,
     colorSignal2: "#ff0055",
     useColor3: false,
