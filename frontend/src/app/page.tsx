@@ -81,7 +81,7 @@ export default function HomePage(): React.JSX.Element {
         {/* Hero */}
         <section className="flex flex-col items-center text-center pt-8 pb-12">
           <span className="animate-panel-enter font-mono text-[10px] font-medium uppercase tracking-[0.35em] text-indigo-300/60">
-            Adversarial Skin Lesion Diagnosis
+            Autonomous Neural Debate Protocol
           </span>
           <div 
             className="animate-panel-enter mt-8 mb-6 flex justify-center"
