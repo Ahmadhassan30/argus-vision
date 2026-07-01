@@ -27,7 +27,7 @@ export default function WebGLBackground({ mode }: WebGLBackgroundProps): React.J
     lineCount: 80,
     globalRotation: 0,
     positionX: 0.0, // Centered horizontally
-    positionY: 15.0, // Aligned to pass precisely through ears/temples of head logo
+    positionY: 13.8, // Aligned to pass precisely through ears/temples of head logo
     spreadHeight: 45.01,
     spreadDepth: 0,
     curveLength: 85, // Symmetrical funnel size left
