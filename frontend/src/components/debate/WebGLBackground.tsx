@@ -253,9 +253,9 @@ export default function WebGLBackground({ mode }: WebGLBackgroundProps): React.J
     // --- GUI Setup ---
     const gui = new GUI({ title: "Visual Control Arena", autoPlace: true });
     gui.domElement.style.position = "absolute";
-    gui.domElement.style.bottom = "10px";
-    gui.domElement.style.right = "10px";
-    gui.domElement.style.top = "auto";
+    gui.domElement.style.top = "16px";
+    gui.domElement.style.right = "16px";
+    gui.domElement.style.bottom = "auto";
     gui.close(); // Collapsed by default
 
     const folderColors = gui.addFolder("Colors");
