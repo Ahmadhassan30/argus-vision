@@ -36,9 +36,9 @@ export default function WebGLBackground({ mode }: WebGLBackgroundProps): React.J
     waveSpeed: 3.6,
     waveHeight: 0.1,
     lineOpacity: 0.535,
-    signalCount: 152,
-    speedGlobal: 0.93,
-    trailLength: 4,
+    signalCount: 136,
+    speedGlobal: 0.693,
+    trailLength: 3,
     bloomStrength: 3.0,
     bloomRadius: 0.5,
   });
@@ -50,7 +50,7 @@ export default function WebGLBackground({ mode }: WebGLBackgroundProps): React.J
       params.colorSignal = "#f50529";
       params.useColor2 = false;
       params.useColor3 = false;
-      params.speedGlobal = 0.93;
+      params.speedGlobal = 0.693;
       params.waveSpeed = 3.6;
       params.waveHeight = 0.1;
       params.bloomStrength = 3.0;
