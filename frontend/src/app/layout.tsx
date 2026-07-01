@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { Plus_Jakarta_Sans, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
 /**
- * Body / UI typeface (Inter) — clean and clinical. Exposed as `--font-body`
- * and wired to the Tailwind `font-body` family.
+ * Body / UI typeface (Plus Jakarta Sans) — premium, modern, and clinical-research grade.
+ * Exposed as `--font-body` and wired to the Tailwind `font-body` family.
  */
-const inter = Inter({
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: "swap",
   weight: ["300", "400", "500", "600", "700"],

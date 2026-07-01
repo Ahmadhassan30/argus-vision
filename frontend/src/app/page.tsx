@@ -101,12 +101,14 @@ export default function HomePage(): React.JSX.Element {
             One Consensus.
           </h1>
           <p
-            className="animate-panel-enter mt-12 max-w-2xl text-[14px] md:text-[16px] leading-relaxed text-ink-soft/90 font-mono"
+            className="animate-panel-enter mt-12 max-w-2xl text-[14px] md:text-[15px] font-normal leading-relaxed text-ink-soft/80 tracking-wide font-body"
             style={{ animationDelay: "120ms" }}
           >
-            Deploy dual classifier agents (CNN + ViT) to analyze skin lesions. 
-            When uncertainty peaks, they initiate spatial Grad-CAM++ disagreement mapping, 
-            resolving features into a calibrated 23-dimensional verdict.
+            Argus Vision is a dual-agent consensus framework for autonomous dermatological diagnostic auditing. 
+            By pairing a convolutional feature extractor (EfficientNet-B4) with a Vision Transformer (ViT-B/16), 
+            the engine models diagnostic uncertainty by simulating adversarial clinical arguments. 
+            Real-time spatial divergence is mapped via Grad-CAM++ attribution, resolving conflicting 
+            classifications into a mathematically calibrated 23-dimensional consensus verdict.
           </p>
 
           {/* Upload */}
@@ -170,7 +172,7 @@ export default function HomePage(): React.JSX.Element {
                 NODE_0{i + 1}
               </div>
               <h3 className="mt-2 font-display text-xl font-bold uppercase tracking-tight text-white group-hover:text-agent-a transition-colors">{cap.title}</h3>
-              <p className="mt-2 text-xs leading-relaxed text-ink-soft font-mono">{cap.body}</p>
+              <p className="mt-2 text-[12.5px] leading-relaxed text-ink-soft/80 font-body">{cap.body}</p>
             </div>
           ))}
         </section>

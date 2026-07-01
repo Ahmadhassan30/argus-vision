@@ -133,7 +133,7 @@ export default function ConsensusVerdict({
         </div>
       )}
 
-      <p className="mt-6 font-mono text-[11px] text-ink-faint">
+      <p className="mt-6 font-body text-[11px] text-ink-faint">
         Research prototype — not for clinical use.
       </p>
     </section>
