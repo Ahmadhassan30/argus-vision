@@ -47,16 +47,16 @@ export default function WebGLBackground({ mode }: WebGLBackgroundProps): React.J
   useEffect(() => {
     const params = paramsRef.current;
     if (mode === "idle") {
-      params.colorSignal = "#8fc9ff";
+      params.colorSignal = "#f50529";
       params.useColor2 = false;
       params.useColor3 = false;
-      params.speedGlobal = 0.345;
-      params.waveSpeed = 2.48;
-      params.waveHeight = 0.145;
+      params.speedGlobal = 0.93;
+      params.waveSpeed = 3.6;
+      params.waveHeight = 0.1;
       params.bloomStrength = 3.0;
     } else if (mode === "debate") {
       // Speed up and add violent multi-color signals during live arguments
-      params.colorSignal = "#8fc9ff";
+      params.colorSignal = "#f50529";
       params.useColor2 = true;
       params.useColor3 = true;
       params.speedGlobal = 1.25;
