@@ -89,13 +89,9 @@ export default function HomePage(): React.JSX.Element {
 
         {/* Hero */}
         <section className="flex flex-1 flex-col items-center justify-center py-16 text-center">
-          <div className="animate-panel-enter flex items-center gap-2.5 rounded-full border border-agent-a/30 bg-agent-a/5 px-3 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.25em] text-agent-a shadow-[0_0_15px_rgba(59,130,246,0.1)]">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-            </span>
-            SYS_GATE // DEBATE SYSTEM ACTIVE
-          </div>
+          <span className="animate-panel-enter font-mono text-[10px] font-medium uppercase tracking-[0.35em] text-indigo-300/60">
+            Adversarial Skin Lesion Diagnosis
+          </span>
           <h1
             className="animate-panel-enter mt-6 font-display text-6xl font-extrabold uppercase leading-[0.95] tracking-tighter sm:text-7xl md:text-8xl bg-gradient-to-b from-white via-slate-100 to-indigo-300 bg-clip-text text-transparent"
             style={{ animationDelay: "60ms" }}

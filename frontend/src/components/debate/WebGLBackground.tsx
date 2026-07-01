@@ -26,17 +26,17 @@ export default function WebGLBackground({ mode }: WebGLBackgroundProps): React.J
     colorSignal3: "#ffcc00",
     lineCount: 80,
     globalRotation: 0,
-    positionX: -32.0, // Shifted left to prevent text overlap
-    positionY: 0.0,
+    positionX: 0.0, // Centered horizontally
+    positionY: -4.5, // Aligned precisely in the gap between title and description
     spreadHeight: 30.33,
     spreadDepth: 0,
-    curveLength: 50,
-    straightLength: 100,
+    curveLength: 85, // Symmetrical funnel size left
+    straightLength: 85, // Symmetrical funnel size right
     curvePower: 0.8265,
     waveSpeed: 2.48,
     waveHeight: 0.145,
     lineOpacity: 0.557,
-    signalCount: 94,
+    signalCount: 110, // More signals to distribute across both funnels
     speedGlobal: 0.345,
     trailLength: 3,
     bloomStrength: 3.0,
@@ -115,6 +115,7 @@ export default function WebGLBackground({ mode }: WebGLBackgroundProps): React.J
 
     // --- Math & Path calculation ---
     function getPathPoint(t: number, lineIndex: number, time: number) {
+      // Span symmetrically from -curveLength to +straightLength (which are equal: e.g. -85 to +85)
       const totalLen = params.curveLength + params.straightLength;
       const currentX = -params.curveLength + t * totalLen;
 
@@ -122,19 +123,27 @@ export default function WebGLBackground({ mode }: WebGLBackgroundProps): React.J
       let z = 0;
       const spreadFactor = (lineIndex / params.lineCount - 0.5) * 2;
 
-      if (currentX < 0) {
-        const ratio = (currentX + params.curveLength) / params.curveLength;
-        let shapeFactor = (Math.cos(ratio * Math.PI) + 1) / 2;
+      // Define where the center straight consensus beam lies (e.g. middle 30% of total length)
+      const convergeLimit = params.curveLength * 0.32; // e.g. 27 units
+      const outerDist = Math.abs(currentX);
+
+      if (outerDist > convergeLimit) {
+        // We are in the left or right funnel region
+        const activeRange = params.curveLength - convergeLimit;
+        const ratio = (outerDist - convergeLimit) / activeRange;
+        
+        // Symmetrical smooth ease-in curve
+        let shapeFactor = (Math.cos((1 - ratio) * Math.PI) + 1) / 2;
         shapeFactor = Math.pow(shapeFactor, params.curvePower);
 
         y = spreadFactor * params.spreadHeight * shapeFactor;
         z = spreadFactor * params.spreadDepth * shapeFactor;
 
-        const waveFactor = shapeFactor;
+        // Wave active inside the outer funnels
         const wave =
           Math.sin(time * params.waveSpeed + currentX * 0.1 + lineIndex) *
           params.waveHeight *
-          waveFactor;
+          shapeFactor;
         y += wave;
       }
 
