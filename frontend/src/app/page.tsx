@@ -101,10 +101,10 @@ export default function HomePage(): React.JSX.Element {
             One Consensus.
           </h1>
           <p
-            className="animate-panel-enter mt-12 max-w-2xl text-[15px] md:text-[17px] font-normal leading-relaxed text-indigo-100/80 tracking-wide font-body"
+            className="animate-panel-enter mt-12 max-w-xl text-[14px] md:text-[15.5px] font-normal leading-relaxed text-indigo-200/70 tracking-wide font-body"
             style={{ animationDelay: "120ms" }}
           >
-            A breakthrough clinical jury system. By pitting a Convolutional Neural Network 
+            <span className="font-semibold text-white">A breakthrough clinical jury system.</span> By pitting a Convolutional Neural Network 
             against a Vision Transformer in a live adversarial debate, Argus Vision forces 
             neural networks to cross-examine and justify their skin cancer diagnoses—resolving 
             interpretive conflict into a single, mathematically calibrated truth.
