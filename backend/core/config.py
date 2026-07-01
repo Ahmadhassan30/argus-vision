@@ -53,10 +53,10 @@ class Settings(BaseSettings):
     is missing instead of raising an error."""
 
     # --- Debate trigger thresholds -----------------------------------------
-    DEBATE_JS_THRESHOLD: float = 0.25
+    DEBATE_JS_THRESHOLD: float = 0.15
     """Jensen-Shannon divergence above which a debate is triggered."""
 
-    DEBATE_ENTROPY_THRESHOLD: float = 0.8
+    DEBATE_ENTROPY_THRESHOLD: float = 0.6
     """Prediction entropy above which spatial attention + consensus run."""
 
     # --- Upload / request limits -------------------------------------------
