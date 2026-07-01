@@ -77,12 +77,6 @@ export default function HomePage(): React.JSX.Element {
       <WebGLBackground mode="idle" />
 
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 pt-3 pb-8">
-        {/* Header Wordmark */}
-        <header className="flex items-center select-none pt-4 pl-2">
-          <span className="font-mono text-[9px] font-bold uppercase tracking-[0.3em] text-indigo-300/40">
-            ARGUS // DECISION FUSION PIPELINE
-          </span>
-        </header>
 
         {/* Hero */}
         <section className="flex flex-col items-center text-center pt-8 pb-12">

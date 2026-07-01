@@ -18,8 +18,8 @@ export default function WebGLBackground({ mode }: WebGLBackgroundProps): React.J
   // References to allow dynamic parameters updates from the parent prop changes
   const paramsRef = useRef({
     colorBg: "#080808",
-    colorLine: "#000075", // Deep clinical blue strands (RGB: 0, 0, 117)
-    colorSignal: "#8fc9ff",
+    colorLine: "#000075", // Deep clinical blue strands
+    colorSignal: "#a80000", // Dark red signal color
     useColor2: false,
     colorSignal2: "#ff0055",
     useColor3: false,
@@ -27,18 +27,18 @@ export default function WebGLBackground({ mode }: WebGLBackgroundProps): React.J
     lineCount: 80,
     globalRotation: 0,
     positionX: 0.0, // Centered horizontally
-    positionY: 11.0, // Shifted to pass precisely through the ears/temples of the head logo
-    spreadHeight: 30.33,
+    positionY: 15.0, // Aligned to pass precisely through ears/temples of head logo
+    spreadHeight: 45.01,
     spreadDepth: 0,
     curveLength: 85, // Symmetrical funnel size left
-    straightLength: 85, // Symmetrical funnel size right
+    straightLength: 84.98, // Symmetrical funnel size right
     curvePower: 0.8265,
-    waveSpeed: 2.48,
-    waveHeight: 0.145,
-    lineOpacity: 0.557,
-    signalCount: 110, // More signals to distribute across both funnels
-    speedGlobal: 0.345,
-    trailLength: 3,
+    waveSpeed: 3.6,
+    waveHeight: 0.1,
+    lineOpacity: 0.535,
+    signalCount: 152,
+    speedGlobal: 0.93,
+    trailLength: 4,
     bloomStrength: 3.0,
     bloomRadius: 0.5,
   });
