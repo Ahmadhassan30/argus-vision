@@ -101,7 +101,7 @@ export default function HomePage(): React.JSX.Element {
             One Consensus.
           </h1>
           <p
-            className="animate-panel-enter mt-6 max-w-2xl text-[14px] md:text-[16px] leading-relaxed text-ink-soft/90 font-mono"
+            className="animate-panel-enter mt-12 max-w-2xl text-[14px] md:text-[16px] leading-relaxed text-ink-soft/90 font-mono"
             style={{ animationDelay: "120ms" }}
           >
             Deploy dual classifier agents (CNN + ViT) to analyze skin lesions. 
