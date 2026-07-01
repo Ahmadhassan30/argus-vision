@@ -106,8 +106,7 @@ export async function nextTurn(s: EngineState, dyn: Dynamics): Promise<StepResul
   const self = speaker === "A" ? s.beliefA : s.beliefB;
   const opp = speaker === "A" ? s.beliefB : s.beliefA;
   const opening = s.turnIndex < 2;
-  const hasConsensus = dyn.consensus !== null;
-  const closing = hasConsensus && s.agreeLeft >= 0;
+  const closing = s.agreeLeft >= 0;
 
   let move: Move;
   let nextSelf: Vec;
@@ -117,7 +116,7 @@ export async function nextTurn(s: EngineState, dyn: Dynamics): Promise<StepResul
     nextSelf = self;
   } else if (closing) {
     move = "agree";
-    nextSelf = dyn.consensus ?? blendToward(self, opp, 0.75);
+    nextSelf = blendToward(self, opp, 0.6);
   } else {
     const r = revise({
       self,
@@ -164,7 +163,7 @@ export async function nextTurn(s: EngineState, dyn: Dynamics): Promise<StepResul
   if (closing) {
     agreeLeft = s.agreeLeft - 1;
     if (agreeLeft < 0) finished = true;
-  } else if (hasConsensus && !opening && js <= CONVERGE_AT) {
+  } else if (!opening && js <= CONVERGE_AT) {
     agreeLeft = 0; // one closing turn from the other agent, then finish
   }
   if (!finished && s.turnIndex + 1 >= MAX_TURNS) finished = true;
@@ -176,7 +175,7 @@ export async function nextTurn(s: EngineState, dyn: Dynamics): Promise<StepResul
     speaker: speaker === "A" ? "B" : "A",
     turnIndex: s.turnIndex + 1,
     recentIds: [...s.recentIds, retrieved.id].slice(-10),
-    converged: hasConsensus && js <= CONVERGE_AT,
+    converged: js <= CONVERGE_AT,
     agreeLeft,
     finished,
   };

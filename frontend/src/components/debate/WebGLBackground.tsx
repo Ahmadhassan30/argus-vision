@@ -27,7 +27,7 @@ export default function WebGLBackground({ mode }: WebGLBackgroundProps): React.J
     lineCount: 80,
     globalRotation: 0,
     positionX: 0.0, // Centered horizontally
-    positionY: -4.5, // Aligned precisely in the gap between title and description
+    positionY: -1.5, // Shifted to sit precisely in the gap below ONE CONSENSUS
     spreadHeight: 30.33,
     spreadDepth: 0,
     curveLength: 85, // Symmetrical funnel size left

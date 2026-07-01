@@ -76,19 +76,18 @@ export default function HomePage(): React.JSX.Element {
     <main className="bg-theatre relative min-h-screen w-full overflow-x-hidden">
       <WebGLBackground mode="idle" />
 
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-8">
-        {/* Wordmark */}
-        <header className="flex items-center gap-2 select-none">
-          <span className="grid h-8 w-8 place-items-center rounded-md border border-hairline bg-surface font-mono text-[10px] text-ink-faint shadow-panel">
-            AV
-          </span>
-          <span className="text-[13px] font-semibold tracking-[0.28em] text-ink">
-            ARGUS<span className="text-ink-faint"> VISION</span>
-          </span>
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 pt-3 pb-8">
+        {/* Logo Header */}
+        <header className="flex items-center select-none pt-2 pl-2">
+          <img
+            src="/logo.png"
+            alt="Argus Vision Logo"
+            className="-ml-10 h-36 w-auto object-contain transition-transform duration-300 hover:scale-[1.03]"
+          />
         </header>
 
         {/* Hero */}
-        <section className="flex flex-1 flex-col items-center justify-center py-16 text-center">
+        <section className="flex flex-col items-center text-center pt-6 pb-12">
           <span className="animate-panel-enter font-mono text-[10px] font-medium uppercase tracking-[0.35em] text-indigo-300/60">
             Adversarial Skin Lesion Diagnosis
           </span>

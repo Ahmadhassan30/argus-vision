@@ -126,7 +126,7 @@ export default function DebatePage({ params }: DebatePageProps): React.JSX.Eleme
     return "thinking";
   };
 
-  const convergedClass = showConsensus ? ws.consensus?.pred_class ?? null : null;
+  const convergedClass = debate.finished && debate.converged ? leadClass(debate.beliefA) : null;
   const recap = ws.consensus
     ? `After ${debate.round} rounds, the agents reconciled their reading to ${getClassName(ws.consensus.pred_class)}; the calibrated head finalizes it at ${(ws.consensus.confidence * 100).toFixed(0)}% confidence.`
     : "";
@@ -139,11 +139,11 @@ export default function DebatePage({ params }: DebatePageProps): React.JSX.Eleme
       <header className="sticky top-0 z-20 border-b border-hairline bg-surface/85 backdrop-blur-md shadow-panel">
         <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between gap-4 px-6">
           <div className="flex items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-md border border-hairline bg-surface font-mono text-[10px] text-ink-faint">AV</span>
-            <div className="leading-tight">
-              <div className="font-display text-xl text-ink">Argus</div>
-              <div className="-mt-1 text-[10px] font-medium uppercase tracking-[0.2em] text-ink-faint">Vision</div>
-            </div>
+            <img
+              src="/logo.png"
+              alt="Argus Vision Logo"
+              className="h-12 w-auto object-contain"
+            />
             <span className="ml-2 hidden rounded-full border border-hairline px-2.5 py-1 font-mono text-[11px] text-ink-faint sm:inline">
               JOB · {jobId.slice(0, 8)}
             </span>
