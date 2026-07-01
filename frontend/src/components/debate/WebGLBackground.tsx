@@ -18,15 +18,15 @@ export default function WebGLBackground({ mode }: WebGLBackgroundProps): React.J
   // References to allow dynamic parameters updates from the parent prop changes
   const paramsRef = useRef({
     colorBg: "#080808",
-    colorLine: "#1f2937",
-    colorSignal: "#3b82f6",
+    colorLine: "#27272a", // Sleek dark border color
+    colorSignal: "#8fc9ff",
     useColor2: false,
-    colorSignal2: "#a78bfa",
+    colorSignal2: "#ff0055",
     useColor3: false,
-    colorSignal3: "#fbbf24",
+    colorSignal3: "#ffcc00",
     lineCount: 80,
     globalRotation: 0,
-    positionX: -25.0, // center offset for (curveLength - straightLength) / 2
+    positionX: -32.0, // Shifted left to prevent text overlap
     positionY: 0.0,
     spreadHeight: 30.33,
     spreadDepth: 0,
@@ -47,7 +47,7 @@ export default function WebGLBackground({ mode }: WebGLBackgroundProps): React.J
   useEffect(() => {
     const params = paramsRef.current;
     if (mode === "idle") {
-      params.colorSignal = "#3b82f6";
+      params.colorSignal = "#8fc9ff";
       params.useColor2 = false;
       params.useColor3 = false;
       params.speedGlobal = 0.345;
@@ -56,7 +56,7 @@ export default function WebGLBackground({ mode }: WebGLBackgroundProps): React.J
       params.bloomStrength = 3.0;
     } else if (mode === "debate") {
       // Speed up and add violent multi-color signals during live arguments
-      params.colorSignal = "#3b82f6";
+      params.colorSignal = "#8fc9ff";
       params.useColor2 = true;
       params.useColor3 = true;
       params.speedGlobal = 1.25;
@@ -407,7 +407,7 @@ export default function WebGLBackground({ mode }: WebGLBackgroundProps): React.J
     <canvas
       ref={canvasRef}
       aria-hidden
-      className="pointer-events-none fixed inset-0 z-0 block h-full w-full"
+      className="pointer-events-none absolute inset-0 z-0 block h-full w-full"
     />
   );
 }

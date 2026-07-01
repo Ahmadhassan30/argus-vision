@@ -135,21 +135,26 @@ export default function DropZone({
         {...getRootProps()}
         className={clsx(
           "flex cursor-pointer flex-col items-center justify-center gap-2",
-          "rounded-2xl border-2 border-dashed bg-surface px-6 py-14 text-center",
-          "transition duration-200 will-change-transform",
+          "rounded-2xl border-2 border-dashed bg-surface/30 backdrop-blur-md px-6 py-14 text-center",
+          "transition duration-300 ease-out will-change-transform",
           isDragActive
-            ? "scale-[1.01] border-agent-a shadow-glow-a"
-            : "border-hairline hover:border-agent-a hover:bg-surface-alt/40"
+            ? "scale-[1.02] border-agent-a shadow-[0_0_30px_rgba(59,130,246,0.3)] bg-surface/50"
+            : "border-hairline hover:border-agent-a hover:bg-surface/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)]"
         )}
       >
         <input {...getInputProps()} />
-        <p className="font-display text-lg text-ink">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline bg-surface/30 text-agent-a group-hover:text-white transition-colors">
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+        </div>
+        <p className="font-mono text-[13px] font-semibold uppercase tracking-widest text-white mt-2">
           {isDragActive
-            ? "Drop the image to analyze"
-            : "Drag & drop a dermoscopic image"}
+            ? "» RELEASE_DATA_INPUT «"
+            : "» UPLOAD_IMAGE_DATA «"}
         </p>
-        <p className="font-mono text-xs text-ink-faint">
-          JPG or PNG · up to 10 MB · click to browse
+        <p className="font-mono text-[10px] uppercase tracking-widest text-agent-a">
+          FORMAT: JPG_PNG // MAX: 10MB // INTERFACE: CLICK_TO_BROWSE
         </p>
       </div>
 

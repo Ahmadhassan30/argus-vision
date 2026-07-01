@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, Instrument_Serif } from "next/font/google";
+import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
 /**
@@ -25,14 +25,13 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 /**
- * Display typeface (Instrument Serif) — section headers and agent names. Used
- * with restraint for weighted, grand-rounds elegance. Exposed as `--font-display`.
+ * Display typeface (Space Grotesk) — section headers, agent names, and title.
+ * Futuristic, geometric, space-themed. Exposed as `--font-display`.
  */
-const instrumentSerif = Instrument_Serif({
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   display: "swap",
-  weight: "400",
-  style: ["normal", "italic"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-display",
 });
 
@@ -67,7 +66,7 @@ export default function RootLayout({
       className={[
         inter.variable,
         jetBrainsMono.variable,
-        instrumentSerif.variable,
+        spaceGrotesk.variable,
       ].join(" ")}
     >
       <body className="min-h-screen bg-canvas font-body text-ink antialiased">
