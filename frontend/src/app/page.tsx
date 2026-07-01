@@ -104,10 +104,9 @@ export default function HomePage(): React.JSX.Element {
             className="animate-panel-enter mt-12 max-w-xl text-[14px] md:text-[15.5px] font-normal leading-relaxed text-indigo-200/70 tracking-wide font-body"
             style={{ animationDelay: "120ms" }}
           >
-            <span className="font-semibold text-white">A breakthrough clinical jury system.</span> By pitting a Convolutional Neural Network 
-            against a Vision Transformer in a live adversarial debate, Argus Vision forces 
-            neural networks to cross-examine and justify their skin cancer diagnoses—resolving 
-            interpretive conflict into a single, mathematically calibrated truth.
+            <span className="font-semibold text-white">Argus Vision introduces the Argus Consensus Framework.</span> Two 
+            state-of-the-art neural agents, each grounded in deep vision research, interrogate the same image independently, 
+            debate their disagreements live, and converge on a calibrated verdict neither could reach alone.
           </p>
 
           {/* Upload */}
