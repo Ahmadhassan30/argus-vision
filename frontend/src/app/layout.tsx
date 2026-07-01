@@ -64,7 +64,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={[
-        inter.variable,
+        plusJakartaSans.variable,
         jetBrainsMono.variable,
         spaceGrotesk.variable,
       ].join(" ")}
