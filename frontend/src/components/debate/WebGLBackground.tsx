@@ -18,7 +18,7 @@ export default function WebGLBackground({ mode }: WebGLBackgroundProps): React.J
   // References to allow dynamic parameters updates from the parent prop changes
   const paramsRef = useRef({
     colorBg: "#080808",
-    colorLine: "#27272a", // Sleek dark border color
+    colorLine: "#000075", // Deep clinical blue strands (RGB: 0, 0, 117)
     colorSignal: "#8fc9ff",
     useColor2: false,
     colorSignal2: "#ff0055",
@@ -27,7 +27,7 @@ export default function WebGLBackground({ mode }: WebGLBackgroundProps): React.J
     lineCount: 80,
     globalRotation: 0,
     positionX: 0.0, // Centered horizontally
-    positionY: -1.5, // Shifted to sit precisely in the gap below ONE CONSENSUS
+    positionY: 11.0, // Shifted to pass precisely through the ears/temples of the head logo
     spreadHeight: 30.33,
     spreadDepth: 0,
     curveLength: 85, // Symmetrical funnel size left

@@ -77,28 +77,28 @@ export default function HomePage(): React.JSX.Element {
       <WebGLBackground mode="idle" />
 
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 pt-3 pb-8">
-        {/* Logo Header */}
-        <header className="flex items-center select-none pt-2 pl-2">
-          <img
-            src="/logo.png"
-            alt="Argus Vision Logo"
-            className="-ml-10 h-36 w-auto object-contain transition-transform duration-300 hover:scale-[1.03]"
-          />
+        {/* Header Wordmark */}
+        <header className="flex items-center select-none pt-4 pl-2">
+          <span className="font-mono text-[9px] font-bold uppercase tracking-[0.3em] text-indigo-300/40">
+            ARGUS // DECISION FUSION PIPELINE
+          </span>
         </header>
 
         {/* Hero */}
-        <section className="flex flex-col items-center text-center pt-6 pb-12">
+        <section className="flex flex-col items-center text-center pt-8 pb-12">
           <span className="animate-panel-enter font-mono text-[10px] font-medium uppercase tracking-[0.35em] text-indigo-300/60">
             Adversarial Skin Lesion Diagnosis
           </span>
-          <h1
-            className="animate-panel-enter mt-6 font-display text-6xl font-extrabold uppercase leading-[0.95] tracking-tighter sm:text-7xl md:text-8xl bg-gradient-to-b from-white via-slate-100 to-indigo-300 bg-clip-text text-transparent"
+          <div 
+            className="animate-panel-enter mt-8 mb-6 flex justify-center"
             style={{ animationDelay: "60ms" }}
           >
-            Two Minds.
-            <br />
-            One Consensus.
-          </h1>
+            <img
+              src="/logo.png"
+              alt="Argus Vision Logo"
+              className="h-48 sm:h-64 md:h-80 w-auto object-contain drop-shadow-[0_0_35px_rgba(167,139,250,0.2)] transition-transform duration-500 hover:scale-[1.02]"
+            />
+          </div>
           <p
             className="animate-panel-enter mt-12 max-w-xl text-[14px] md:text-[15.5px] font-normal leading-relaxed text-indigo-200/70 tracking-wide font-body"
             style={{ animationDelay: "120ms" }}
