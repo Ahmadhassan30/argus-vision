@@ -16,20 +16,20 @@ const config: Config = {
     extend: {
       colors: {
         // Surfaces — the operating table.
-        canvas: "#F7F8FC",
-        surface: "#FFFFFF",
-        "surface-alt": "#EFF1F8",
+        canvas: "var(--bg-canvas)",
+        surface: "var(--bg-surface)",
+        "surface-alt": "var(--bg-surface-alt)",
         // Agent + outcome accents.
-        "agent-a": "#2563EB", // EfficientNet-B4 CNN — deep royal blue.
-        "agent-b": "#7C3AED", // ViT-B/16 Transformer — electric violet.
-        consensus: "#059669", // vivid emerald — resolution, life.
-        warning: "#D97706", // amber — trigger fired.
-        danger: "#DC2626", // urgent red — high-confidence MEL.
+        "agent-a": "var(--accent-agent-a)",
+        "agent-b": "var(--accent-agent-b)",
+        consensus: "var(--accent-consensus)",
+        warning: "var(--accent-warning)",
+        danger: "var(--accent-danger)",
         // Text + structure.
-        ink: "#0F172A", // near-black primary text.
-        "ink-soft": "#475569", // slate labels.
-        "ink-faint": "#94A3B8", // timestamps, minor labels.
-        hairline: "#E2E8F0", // panel borders.
+        ink: "var(--text-primary)",
+        "ink-soft": "var(--text-secondary)",
+        "ink-faint": "var(--text-muted)",
+        hairline: "var(--border-subtle)",
       },
       fontFamily: {
         display: ["var(--font-display)", "Georgia", "serif"],
@@ -47,16 +47,16 @@ const config: Config = {
       },
       boxShadow: {
         "glow-a":
-          "0 0 0 3px rgba(37, 99, 235, 0.15), 0 4px 24px rgba(37, 99, 235, 0.12)",
+          "var(--glow-agent-a)",
         "glow-b":
-          "0 0 0 3px rgba(124, 58, 237, 0.15), 0 4px 24px rgba(124, 58, 237, 0.12)",
+          "var(--glow-agent-b)",
         "glow-consensus":
-          "0 0 0 3px rgba(5, 150, 105, 0.2), 0 4px 32px rgba(5, 150, 105, 0.18)",
+          "var(--glow-consensus)",
         "glow-warning":
-          "0 0 0 3px rgba(217, 119, 6, 0.16), 0 4px 24px rgba(217, 119, 6, 0.14)",
-        panel: "0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04)",
+          "0 0 0 3px rgba(217, 119, 6, 0.2), 0 4px 24px rgba(217, 119, 6, 0.18)",
+        panel: "0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2)",
         "panel-lg":
-          "0 8px 32px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04)",
+          "0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2)",
       },
       keyframes: {
         // Status / thinking pulses.

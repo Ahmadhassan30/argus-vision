@@ -9,26 +9,26 @@
    WebGL); these CSS variables exist for raw CSS, gradients and JS reads.
    ========================================================================== */
 :root {
-  --bg-canvas: #f7f8fc;
-  --bg-surface: #ffffff;
-  --bg-surface-alt: #eff1f8;
+  --bg-canvas: #080808;
+  --bg-surface: #121214;
+  --bg-surface-alt: #1a1a1f;
 
-  --accent-agent-a: #2563eb;
-  --accent-agent-b: #7c3aed;
-  --accent-consensus: #059669;
-  --accent-warning: #d97706;
-  --accent-danger: #dc2626;
+  --accent-agent-a: #3b82f6;
+  --accent-agent-b: #a78bfa;
+  --accent-consensus: #10b981;
+  --accent-warning: #fbbf24;
+  --accent-danger: #f87171;
 
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
 
-  --border-subtle: #e2e8f0;
-  --border-active: rgba(37, 99, 235, 0.4);
+  --border-subtle: #1f1f23;
+  --border-active: rgba(59, 130, 246, 0.6);
 
-  --glow-agent-a: 0 0 0 3px rgba(37, 99, 235, 0.15), 0 4px 24px rgba(37, 99, 235, 0.12);
-  --glow-agent-b: 0 0 0 3px rgba(124, 58, 237, 0.15), 0 4px 24px rgba(124, 58, 237, 0.12);
-  --glow-consensus: 0 0 0 3px rgba(5, 150, 105, 0.2), 0 4px 32px rgba(5, 150, 105, 0.18);
+  --glow-agent-a: 0 0 0 3px rgba(59, 130, 246, 0.25), 0 4px 24px rgba(59, 130, 246, 0.2);
+  --glow-agent-b: 0 0 0 3px rgba(167, 139, 250, 0.25), 0 4px 24px rgba(167, 139, 250, 0.2);
+  --glow-consensus: 0 0 0 3px rgba(16, 185, 129, 0.3), 0 4px 32px rgba(16, 185, 129, 0.25);
 }
 
 @layer base {
@@ -114,10 +114,10 @@
   }
 }
 
-/* Page-wide thin scrollbar (light theme). */
+/* Page-wide thin scrollbar (dark theme). */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: #27272a transparent;
 }
 *::-webkit-scrollbar {
   width: 10px;
@@ -127,12 +127,12 @@
   background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
+  background-color: #27272a;
   border-radius: 9999px;
   border: 3px solid var(--bg-canvas);
 }
 *::-webkit-scrollbar-thumb:hover {
-  background-color: #94a3b8;
+  background-color: #3f3f46;
 }
 
 /* ----------------------------------------------------------------------------
