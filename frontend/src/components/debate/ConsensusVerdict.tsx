@@ -1,16 +1,16 @@
 "use client";
 
 /**
- * ConsensusVerdict — the resolution. Rises into view when the calibrated fusion
- * lands: the diagnosis types in, the confidence counts up behind a growing bar,
- * a calibration badge grades the ECE, the full distribution settles, and the
- * neutral Consensus-Engine synthesis streams in beneath it in italic serif.
+ * ConsensusVerdict — the final diagnosis panel.
+ *
+ * Flat, clean panel with a subtle green left accent stripe. No glow, no
+ * rise-in animation, no sparkle icons. Shows the diagnosis, confidence bar,
+ * calibration metrics, full probability distribution, and synthesis text.
  */
 
 import type { ConsensusResult, TriggerResult } from "@/types/debate";
 import { getClassMeta, getRisk } from "@/lib/constants";
 import { useCountup } from "@/hooks/useCountup";
-import ArgumentStream from "@/components/debate/ArgumentStream";
 import ProbabilityBars from "@/components/debate/ProbabilityBars";
 
 interface ConsensusVerdictProps {
@@ -20,98 +20,86 @@ interface ConsensusVerdictProps {
   synthesisActive: boolean;
 }
 
-interface Calibration {
-  label: string;
-  color: string;
-}
-
-function calibration(ece: number): Calibration {
-  if (ece < 0.05) return { label: "Well calibrated", color: "var(--accent-consensus)" };
-  if (ece <= 0.1) return { label: "Moderately calibrated", color: "var(--accent-warning)" };
-  return { label: "Poorly calibrated", color: "var(--accent-danger)" };
+function calibrationLabel(ece: number): { label: string; color: string } {
+  if (ece < 0.05) return { label: "Well calibrated", color: "#059669" };
+  if (ece <= 0.1) return { label: "Moderately calibrated", color: "#fbbf24" };
+  return { label: "Poorly calibrated", color: "#f87171" };
 }
 
 export default function ConsensusVerdict({
   consensus,
   trigger,
   synthesis,
-  synthesisActive,
 }: ConsensusVerdictProps): React.JSX.Element {
   const meta = getClassMeta(consensus.pred_class);
   const fullName = meta?.fullName ?? consensus.pred_class;
   const riskColor = getRisk(consensus.pred_class);
   const conf = useCountup(consensus.confidence * 100, { duration: 1200, delay: 200 });
-  const cal = calibration(consensus.ece);
+  const cal = calibrationLabel(consensus.ece);
   const pathLabel = trigger?.fired
     ? "Resolved through adversarial spatial debate"
-    : "Fast path — the agents agreed";
+    : "Fast path — agents agreed";
 
   return (
-    <section
-      aria-label="Consensus diagnosis"
-      className="animate-rise-in overflow-hidden rounded-2xl border bg-surface p-6 shadow-glow-consensus"
-      style={{ borderColor: "rgba(5, 150, 105, 0.4)" }}
-    >
-      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-consensus">
-        <span aria-hidden>✦</span>
-        Consensus diagnosis
+    <div className="p-5" style={{ borderLeft: "3px solid #059669" }}>
+      {/* Section label */}
+      <div className="font-mono text-[10px] font-medium uppercase tracking-widest" style={{ color: "#059669" }}>
+        Consensus Diagnosis
       </div>
 
       {/* Diagnosis + confidence */}
-      <div className="mt-4 flex flex-wrap items-end justify-between gap-6">
+      <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="font-display text-3xl leading-none text-ink sm:text-[38px]">
+          <h2 className="text-2xl font-semibold leading-none" style={{ color: "#f3f4f6" }}>
             {fullName}
           </h2>
           <div className="mt-2 flex items-center gap-2">
             <span
-              className="rounded-md px-2 py-0.5 font-mono text-xs font-semibold text-white"
+              className="rounded px-2 py-0.5 font-mono text-[11px] font-semibold text-white"
               style={{ backgroundColor: riskColor }}
             >
               {consensus.pred_class}
             </span>
-            <span className="text-xs text-ink-soft">{pathLabel}</span>
+            <span className="font-mono text-[10px]" style={{ color: "#6b7280" }}>
+              {pathLabel}
+            </span>
           </div>
         </div>
         <div className="text-right">
-          <div className="text-[10px] uppercase tracking-wider text-ink-faint">
+          <div className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "#6b7280" }}>
             Confidence
           </div>
-          <div className="font-mono text-3xl font-semibold tabular leading-none text-consensus">
+          <div className="font-mono text-2xl font-semibold tabular leading-none" style={{ color: "#059669" }}>
             {conf.toFixed(0)}
-            <span className="text-xl text-ink-faint">%</span>
+            <span className="text-base" style={{ color: "#6b7280" }}>%</span>
           </div>
         </div>
       </div>
 
       {/* Confidence bar */}
-      <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-surface-alt">
+      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full" style={{ backgroundColor: "#1a1a1f" }}>
         <div
-          className="h-full rounded-full"
+          className="h-full rounded-full transition-[width] duration-1000"
           style={{
             width: `${conf}%`,
-            background:
-              "linear-gradient(90deg, var(--accent-consensus) 0%, #34d399 100%)",
+            backgroundColor: "#059669",
           }}
         />
       </div>
 
-      {/* Metrics */}
-      <div className="mt-5 flex flex-wrap gap-2.5">
-        <Metric label="Temperature" value={consensus.temperature.toFixed(2)} />
-        <Metric label="ECE" value={consensus.ece.toFixed(3)} />
-        <span
-          className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium"
-          style={{ color: cal.color, borderColor: cal.color }}
-        >
+      {/* Metrics row */}
+      <div className="mt-4 flex flex-wrap items-center gap-4">
+        <MetricChip label="Temperature" value={consensus.temperature.toFixed(2)} />
+        <MetricChip label="ECE" value={consensus.ece.toFixed(3)} />
+        <div className="flex items-center gap-1.5 font-mono text-[11px]" style={{ color: cal.color }}>
           <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: cal.color }} />
           {cal.label}
-        </span>
+        </div>
       </div>
 
       {/* Final distribution */}
-      <div className="mt-6">
-        <div className="mb-2 text-[10px] uppercase tracking-wider text-ink-faint">
+      <div className="mt-5">
+        <div className="mb-2 font-mono text-[10px] uppercase tracking-widest" style={{ color: "#6b7280" }}>
           Final calibrated distribution
         </div>
         <ProbabilityBars
@@ -122,29 +110,39 @@ export default function ConsensusVerdict({
       </div>
 
       {/* Synthesis */}
-      {(synthesis.length > 0 || synthesisActive) && (
-        <div className="mt-6 rounded-xl border border-hairline bg-surface-alt p-4">
-          <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-consensus">
-            Argus Consensus Engine
+      {synthesis.length > 0 && (
+        <div
+          className="mt-5 rounded border p-4"
+          style={{ borderColor: "#1a1a1f", backgroundColor: "#0a0a0c" }}
+        >
+          <div className="mb-1 font-mono text-[9px] font-medium uppercase tracking-widest" style={{ color: "#059669" }}>
+            Consensus Engine
           </div>
-          <p className="text-[15px] leading-relaxed text-ink-soft">
-            <ArgumentStream text={synthesis} active={synthesisActive} serif speed={42} />
+          <p className="text-[13px] leading-relaxed" style={{ color: "#9ca3af" }}>
+            {synthesis}
           </p>
         </div>
       )}
 
-      <p className="mt-6 font-body text-[11px] text-ink-faint">
+      <p className="mt-4 font-mono text-[10px]" style={{ color: "#4b5563" }}>
         Research prototype — not for clinical use.
       </p>
-    </section>
+    </div>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }): React.JSX.Element {
+function MetricChip({ label, value }: { label: string; value: string }): React.JSX.Element {
   return (
-    <span className="inline-flex items-center gap-2 rounded-lg border border-hairline bg-surface-alt px-3 py-1.5">
-      <span className="text-[10px] uppercase tracking-wider text-ink-faint">{label}</span>
-      <span className="font-mono text-xs font-medium tabular text-ink">{value}</span>
+    <span
+      className="inline-flex items-center gap-2 rounded border px-2.5 py-1"
+      style={{ borderColor: "#1a1a1f", backgroundColor: "#0a0a0c" }}
+    >
+      <span className="font-mono text-[9px] uppercase tracking-wider" style={{ color: "#6b7280" }}>
+        {label}
+      </span>
+      <span className="font-mono text-xs tabular" style={{ color: "#e5e7eb" }}>
+        {value}
+      </span>
     </span>
   );
 }

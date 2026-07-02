@@ -1,30 +1,27 @@
 "use client";
 
 /**
- * ArgumentStream — the signature element. Reveals an agent's argument text
- * character-by-character at a steady cinematic cadence using requestAnimationFrame,
- * regardless of how chunkily the underlying tokens arrive. A blinking caret marks
- * live cognition. Honours reduced-motion by showing the full text at once.
+ * ArgumentStream — dynamic human-like typing stream.
  *
- * The component reveals toward whatever `text` currently is, so as new tokens grow
- * the target it keeps typing; if the text is replaced (e.g. fallback swap) it
- * clamps gracefully.
+ * Types out the argument text character-by-character with variable natural delays:
+ * - standard characters: fast (12ms)
+ * - spaces: brief pause (25ms)
+ * - commas/semicolons: moderate pause (220ms)
+ * - sentence endings (., ?, !): longer pause (500ms)
+ *
+ * This mimics natural human pacing during deliberation. Honours
+ * prefers-reduced-motion by rendering immediately.
  */
 
-import { useEffect, useRef, useState } from "react";
-
+import { useEffect, useState } from "react";
 import { AGENTS, type AgentId } from "@/lib/constants";
 
 interface ArgumentStreamProps {
   text: string;
-  /** Drives caret colour; omit for the neutral consensus voice. */
+  /** Drives caret colour; omit for neutral voice. */
   agentId?: AgentId;
-  /** Show the caret even when fully revealed (request still in flight). */
+  /** Whether the generation is currently active. */
   active?: boolean;
-  /** Reveal speed in characters per second. */
-  speed?: number;
-  /** Render synthesis voice in italic serif. */
-  serif?: boolean;
   className?: string;
 }
 
@@ -32,14 +29,9 @@ export default function ArgumentStream({
   text,
   agentId,
   active = false,
-  speed = 48,
-  serif = false,
   className = "",
 }: ArgumentStreamProps): React.JSX.Element {
-  const [shown, setShown] = useState(0);
-  const rafRef = useRef<number | null>(null);
-  const lastRef = useRef<number>(0);
-  const accRef = useRef<number>(0);
+  const [visibleText, setVisibleText] = useState("");
 
   const reduced =
     typeof window !== "undefined" &&
@@ -47,60 +39,63 @@ export default function ArgumentStream({
 
   useEffect(() => {
     if (reduced) {
-      setShown(text.length);
+      setVisibleText(text);
       return;
     }
 
-    // Clamp if the target shrank (text replaced).
-    setShown((s) => Math.min(s, text.length));
+    let isMounted = true;
+    let index = 0;
+    let timerId: ReturnType<typeof setTimeout>;
 
-    const tick = (now: number): void => {
-      if (lastRef.current === 0) lastRef.current = now;
-      const dt = (now - lastRef.current) / 1000;
-      lastRef.current = now;
-      accRef.current += dt * speed;
+    const typeNextChar = () => {
+      if (!isMounted) return;
+      if (index >= text.length) {
+        setVisibleText(text);
+        return;
+      }
 
-      setShown((prev) => {
-        if (prev >= text.length) return prev;
-        const add = Math.floor(accRef.current);
-        if (add >= 1) {
-          accRef.current -= add;
-          return Math.min(prev + add, text.length);
+      const nextText = text.slice(0, index + 1);
+      setVisibleText(nextText);
+      const char = text[index];
+      index++;
+
+      // Compute natural typing delays
+      let delay = 12; // Base letter delay
+      if (char === " ") {
+        delay = 25;
+      } else if (char === "," || char === ";" || char === ":") {
+        delay = 220;
+      } else if (char === "." || char === "?" || char === "!") {
+        // Lookahead to make sure it's sentence boundary, not decimal / acronym
+        const nextChar = text[index];
+        if (!nextChar || nextChar === " " || nextChar === "\n") {
+          delay = 500;
         }
-        return prev;
-      });
+      }
 
-      rafRef.current = requestAnimationFrame(tick);
+      timerId = setTimeout(typeNextChar, delay);
     };
 
-    rafRef.current = requestAnimationFrame(tick);
+    typeNextChar();
+
     return () => {
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-      lastRef.current = 0;
+      isMounted = false;
+      clearTimeout(timerId);
     };
-  }, [text, speed, reduced]);
+  }, [text, reduced]);
 
-  const visible = text.slice(0, shown);
-  const caretVisible = active || shown < text.length;
   const caretColor = agentId ? AGENTS[agentId].color : "var(--accent-consensus)";
+  const isTyping = active && visibleText.length < text.length;
 
   return (
-    <span
-      className={[
-        serif ? "font-display italic" : "",
-        "whitespace-pre-wrap",
-        className,
-      ].join(" ")}
-    >
-      {visible}
-      {caretVisible && (
+    <span className={["whitespace-pre-wrap font-mono text-[13px] leading-relaxed", className].join(" ")}>
+      {visibleText}
+      {isTyping && (
         <span
           aria-hidden
-          className="ml-px inline-block animate-blink"
-          style={{ color: caretColor }}
-        >
-          ▋
-        </span>
+          className="ml-0.5 inline-block w-1.5 h-3.5 align-middle animate-pulse"
+          style={{ backgroundColor: caretColor }}
+        />
       )}
     </span>
   );

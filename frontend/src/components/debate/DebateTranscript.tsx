@@ -1,12 +1,11 @@
 "use client";
 
 /**
- * DebateTranscript — the heart of the experience: two agents arguing turn by
- * turn like people. Each turn arrives as a chat bubble (Agent A left/blue, Agent
- * B right/violet) that types itself out, tagged with the rhetorical move the
- * agent just made (opens, rebuts, softens, concedes, agrees). An agreement meter
- * climbs as their beliefs converge; when they finally agree, a closing chip
- * marks the resolution.
+ * DebateTranscript — clean, clinical log-style debate view.
+ *
+ * Each turn is rendered inside a flat, dark workstation-style panel.
+ * Uses `ArgumentStream` to show a human-paced typing animation with natural delays
+ * and a blinking caret for the latest active turn.
  */
 
 import { useEffect, useRef } from "react";
@@ -27,12 +26,12 @@ interface DebateTranscriptProps {
 }
 
 const MOVE_LABEL: Record<Move, string> = {
-  open: "opens",
-  press: "holds ground",
-  rebut: "rebuts",
-  soften: "softens",
-  concede: "concedes",
-  agree: "agrees",
+  open: "OPENS DEBATE",
+  press: "REINFORCES READ",
+  rebut: "REBUTS COUNTER",
+  soften: "ADJUSTS BELIEF",
+  concede: "CONCEDES READ",
+  agree: "CONVERGES",
 };
 
 export default function DebateTranscript({
@@ -45,94 +44,106 @@ export default function DebateTranscript({
   convergedClass,
 }: DebateTranscriptProps): React.JSX.Element {
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const lastIndex = turns.length - 1;
 
-  // Keep the latest turn in view as the conversation grows.
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [turns.length]);
 
   const pct = Math.round(agreement * 100);
-  const lastIndex = turns.length - 1;
 
   return (
-    <section
-      aria-label="Live debate transcript"
-      className="rounded-2xl border border-hairline bg-surface p-6 shadow-panel animate-panel-enter"
-    >
-      {/* Header + agreement meter */}
-      <header className="mb-4 flex items-center justify-between gap-4">
-        <div>
-          <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-faint">
-            {finished ? "Debate concluded" : active ? "Live debate" : "Debate"}
-          </div>
-          <h3 className="font-display text-xl leading-tight text-ink">
-            {round > 0 ? `Round ${round}` : "Opening statements"}
-          </h3>
+    <div className="p-5" style={{ backgroundColor: "#0a0a0c" }}>
+      {/* Header Bar */}
+      <div className="flex items-center justify-between border-b pb-3 mb-4" style={{ borderColor: "#1a1a1f" }}>
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-[10px] uppercase tracking-[0.2em]" style={{ color: "#8e9196" }}>
+            TRANSACTION LOG
+          </span>
+          <span className="h-1 w-1 rounded-full bg-ink-faint" />
+          <span className="font-mono text-[10px] uppercase text-[#6b7280]">
+            {finished ? "Concluded" : active ? "Active Stream" : "Standby"}
+          </span>
         </div>
-        <div className="w-40 shrink-0">
-          <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wider text-ink-faint">
-            <span>Agreement</span>
-            <span className="font-mono tabular text-ink-soft">{pct}%</span>
-          </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-surface-alt">
+
+        {/* Agreement Meter */}
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-[#6b7280]">
+            Consensus Agreement
+          </span>
+          <div className="h-1 w-20 overflow-hidden rounded-full bg-[#1a1a1f]">
             <div
-              className="h-full rounded-full transition-[width] duration-700"
+              className="h-full rounded-full transition-all duration-500"
               style={{
                 width: `${pct}%`,
-                background: "linear-gradient(90deg, #2563EB 0%, #7C3AED 50%, #059669 100%)",
+                backgroundColor: pct > 80 ? "#059669" : "#3b82f6",
               }}
             />
           </div>
+          <span className="font-mono text-[10px] font-semibold tabular text-[#e5e7eb]">
+            {pct}%
+          </span>
         </div>
-      </header>
+      </div>
 
-      {/* Conversation */}
-      <div ref={scrollRef} className="scroll-clinical flex max-h-[460px] flex-col gap-3 overflow-y-auto pr-1">
+      {/* Log Feed */}
+      <div
+        ref={scrollRef}
+        className="flex max-h-[380px] flex-col gap-3 overflow-y-auto pr-1 scroll-clinical"
+      >
         {turns.length === 0 ? (
-          <div className="flex items-center gap-2 py-10 text-sm text-ink-faint">
-            <span className="flex gap-1">
-              {[0, 1, 2].map((i) => (
-                <span
-                  key={i}
-                  className="h-1.5 w-1.5 rounded-full bg-ink-faint animate-dot-bounce"
-                  style={{ animationDelay: `${i * 0.15}s` }}
-                />
-              ))}
-            </span>
-            Opening statements incoming…
+          <div className="flex items-center gap-2 py-10 justify-center font-mono text-[11px]" style={{ color: "#4b5563" }}>
+            <span className="h-1.5 w-1.5 rounded-full animate-ping" style={{ backgroundColor: "#3b82f6" }} />
+            INITIALIZING LOG BUFFER...
           </div>
         ) : (
           turns.map((turn) => {
             const meta = AGENTS[turn.agent];
-            const isA = turn.agent === "A";
             const isLast = turn.index === lastIndex;
             return (
-              <div key={turn.index} className={["flex", isA ? "justify-start" : "justify-end"].join(" ")}>
-                <div
-                  className="max-w-[86%] rounded-2xl border bg-surface-alt px-4 py-3"
-                  style={{
-                    borderColor: "var(--border-subtle)",
-                    [isA ? "borderLeft" : "borderRight"]: `3px solid ${meta.color}`,
-                  } as React.CSSProperties}
-                >
-                  <div className="mb-1 flex items-center gap-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: meta.color }}>
+              <div
+                key={turn.index}
+                className="rounded border p-3 flex flex-col gap-2 transition-all duration-300"
+                style={{
+                  backgroundColor: "#0d0d0f",
+                  borderColor: isLast && active ? meta.color : "#1a1a1f",
+                  boxShadow: isLast && active ? `inset 2px 0 0 ${meta.color}` : "none",
+                }}
+              >
+                {/* Meta details */}
+                <div className="flex items-center justify-between border-b pb-1.5" style={{ borderColor: "#141417" }}>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="font-mono text-[9px] font-bold uppercase tracking-widest"
+                      style={{ color: meta.color }}
+                    >
                       {meta.name}
                     </span>
-                    <span className="rounded-full bg-surface px-1.5 py-px font-mono text-[9px] uppercase tracking-wider text-ink-faint">
-                      {MOVE_LABEL[turn.move]}
+                    <span className="font-mono text-[9px]" style={{ color: "#4b5563" }}>
+                      [ROUND {turn.round}]
                     </span>
-                    <span className="font-mono text-[9px] text-ink-faint">R{turn.round}</span>
                   </div>
-                  <p className="text-[13px] leading-relaxed text-ink-soft">
-                    <ArgumentStream
-                      text={turn.text}
-                      agentId={turn.agent}
-                      active={isLast && active}
-                      speed={46}
-                    />
-                  </p>
+
+                  <span
+                    className="font-mono text-[8px] font-semibold tracking-wider rounded px-1"
+                    style={{
+                      backgroundColor: `${meta.color}15`,
+                      color: meta.color,
+                      border: `1px solid ${meta.color}30`,
+                    }}
+                  >
+                    {MOVE_LABEL[turn.move]}
+                  </span>
+                </div>
+
+                {/* Body Text */}
+                <div style={{ color: isLast && active ? "#e5e7eb" : "#a1a1a6" }}>
+                  <ArgumentStream
+                    text={turn.text}
+                    agentId={turn.agent}
+                    active={isLast && active}
+                  />
                 </div>
               </div>
             );
@@ -140,23 +151,24 @@ export default function DebateTranscript({
         )}
       </div>
 
-      {/* Resolution chip */}
+      {/* Audit Verdict Banner */}
       {finished && (
-        <div className="mt-4 flex items-center justify-center">
-          <span
-            className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold"
-            style={{
-              backgroundColor: converged ? "rgba(5,150,105,0.12)" : "rgba(148,163,184,0.16)",
-              color: converged ? "#059669" : "#475569",
-            }}
-          >
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: converged ? "#059669" : "#94A3B8" }} />
+        <div
+          className="mt-4 flex items-center justify-between rounded border p-3 font-mono text-[10px] tracking-wide"
+          style={{
+            backgroundColor: converged ? "#081c15" : "#141417",
+            borderColor: converged ? "#0f3d2a" : "#1f1f23",
+            color: converged ? "#34d399" : "#9ca3af",
+          }}
+        >
+          <span>LOG STATUS: VERDICT LOCKED</span>
+          <span>
             {converged && convergedClass
-              ? `Converged — agreed on ${getClassName(convergedClass)}`
-              : "Debate concluded"}
+              ? `AGREEMENT: ${getClassName(convergedClass)}`
+              : "TERMINATED — NO CONVERGENCE"}
           </span>
         </div>
       )}
-    </section>
+    </div>
   );
 }
