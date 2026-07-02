@@ -59,6 +59,29 @@ class Settings(BaseSettings):
     DEBATE_ENTROPY_THRESHOLD: float = 0.6
     """Prediction entropy above which spatial attention + consensus run."""
 
+    # --- Dermoscopy input gate (Phase 10) ------------------------------------
+    DERMOSCOPY_GATE_ENABLED: bool = True
+    """Master switch for the two-stage dermoscopy validity check.  Set to False
+    via env var to bypass for testing or non-clinical deployments."""
+
+    DERMOSCOPY_ASPECT_RATIO_MAX: float = 2.5
+    """Reject images whose aspect ratio (long / short side) exceeds this."""
+
+    DERMOSCOPY_MIN_DIMENSION_PX: int = 50
+    """Reject images where either width or height is below this pixel count."""
+
+    DERMOSCOPY_CHANNEL_STD_MIN: float = 8.0
+    """Reject images where ALL three RGB channel standard deviations fall below
+    this threshold (catches solid-colour, blank, or uniform-background images)."""
+
+    DERMOSCOPY_CLASSIFIER_CONFIDENCE_THRESHOLD: float = 0.60
+    """MobileNetV3 confidence above which a 'clearly not skin' prediction
+    causes rejection."""
+
+    DERMOSCOPY_GATE_MODEL: str = "mobilenetv3_small_100"
+    """``timm`` model identifier for the lightweight classifier gate."""
+
+
     # --- Upload / request limits -------------------------------------------
     MAX_IMAGE_SIZE_MB: int = 10
     """Maximum accepted upload size for an image, in megabytes."""

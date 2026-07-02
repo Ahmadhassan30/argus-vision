@@ -50,6 +50,8 @@ from ml.attention.gradcam import compute_gradcam_plusplus
 from ml.attention.rollout import compute_attention_rollout
 from ml.consensus.classifier import ConsensusClassifier
 from ml.debate.trigger import evaluate_trigger
+from ml.dermoscopy_gate import DermoscopyClassifierGate, is_plausible_dermoscopy
+from core.exceptions import ImageProcessingError
 from services import image_service
 from services.job_service import JobService
 
@@ -98,11 +100,20 @@ class DebatePipeline:
             scaler_path=consensus_scaler,
         )
 
+        # Dermoscopy input gate (Phase 10) — loaded once, reused across jobs.
+        if self.settings.DERMOSCOPY_GATE_ENABLED:
+            self.gate: Optional[DermoscopyClassifierGate] = DermoscopyClassifierGate(
+                model_name=self.settings.DERMOSCOPY_GATE_MODEL,
+            )
+        else:
+            self.gate = None
+
         self._loaded = True
         logger.info(
             "DebatePipeline ready (checkpoint_dir='%s'); 23-dim numerical "
-            "consensus contract (no LLM debate).",
+            "consensus contract (no LLM debate). Dermoscopy gate: %s.",
             checkpoint_dir,
+            "enabled" if self.gate is not None else "disabled",
         )
 
     def is_loaded(self) -> bool:
@@ -133,6 +144,31 @@ class DebatePipeline:
             )
 
             tensor, original_pil = image_service.preprocess_image(image_path)
+
+            # --- Phase 10: dermoscopy input gate ---------------------------
+            if self.settings.DERMOSCOPY_GATE_ENABLED:
+                # Gate 1: fast heuristic pre-filter (< 1 ms)
+                plausible, reason = is_plausible_dermoscopy(
+                    original_pil, self.settings
+                )
+                if not plausible:
+                    raise ImageProcessingError(
+                        f"Input rejected by dermoscopy pre-filter: {reason}"
+                    )
+
+                # Gate 2: lightweight classifier check (~15 ms)
+                if self.gate is not None:
+                    is_skin, reason = await asyncio.to_thread(
+                        self.gate.is_dermoscopy,
+                        original_pil,
+                        self.settings.DERMOSCOPY_CLASSIFIER_CONFIDENCE_THRESHOLD,
+                    )
+                    if not is_skin:
+                        raise ImageProcessingError(
+                            f"Input does not appear to be a skin lesion "
+                            f"image. Please upload a dermoscopy photograph. "
+                            f"({reason})"
+                        )
 
             # --- Stage 2: run both agents ----------------------------------
             result_a = await asyncio.to_thread(self.agent_a.predict, tensor)
@@ -238,7 +274,6 @@ class DebatePipeline:
                     job_id,
                     cleanup_exc,
                 )
-
     def _evaluate_trigger(
         self,
         probs_a: dict[str, float],
